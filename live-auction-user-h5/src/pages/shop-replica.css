@@ -29,43 +29,34 @@
 
 .dyMallHero {
   position: relative;
-  padding: calc(72px + var(--live-safe-top)) 12px 12px;
-  background:
-    radial-gradient(circle at 84% 12%, rgba(255, 231, 138, 0.5), transparent 29%),
-    radial-gradient(circle at 4% 10%, rgba(255, 255, 255, 0.16), transparent 25%),
-    linear-gradient(180deg, #ff5949 0%, #ff4961 28%, #ff416e 61%, #ffe8dc 100%);
+  padding: var(--live-safe-top) 0 0;
+  background: #fff;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 7px 18px rgba(20, 20, 20, 0.07);
+  overflow: hidden;
 }
 
 .dyMallHero::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: calc(64px + var(--live-safe-top));
-  pointer-events: none;
+  content: none;
 }
 
 .dyMallTopNav {
-  position: absolute;
+  position: relative;
   z-index: 8;
-  top: calc(8px + var(--live-safe-top));
-  left: 0;
-  right: 0;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: 39px minmax(0, 1fr) 39px;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+  height: 52px;
   padding: 0 8px;
-  color: #fff;
-  text-shadow: 0 2px 12px rgba(104, 4, 25, 0.42);
+  color: #3f4248;
+  text-shadow: none;
 }
 
 .dyMallTopNav > button,
 .dyMallTopNav > a {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 44px;
   display: grid;
   place-items: center;
   border: 0;
@@ -80,11 +71,11 @@
 
 .dyMallTopNav > button svg,
 .dyMallTopNav > a svg {
-  width: 25px;
-  height: 25px;
-  stroke-width: 2.15;
+  width: 33px;
+  height: 33px;
+  stroke-width: 2.05;
   stroke-linecap: round;
-  filter: drop-shadow(0 2px 8px rgba(104, 4, 25, 0.38));
+  filter: none;
 }
 
 .dyMallTopNav nav {
@@ -100,12 +91,12 @@
 .dyMallTopNav nav button {
   position: relative;
   width: auto;
-  min-height: 42px;
+  min-height: 52px;
   flex: 0 0 auto;
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.62);
+  color: #70737a;
   padding: 0;
   font: inherit;
   font-size: 15px;
@@ -114,7 +105,7 @@
 }
 
 .dyMallTopNav nav button.isActive {
-  color: #fff;
+  color: #22242b;
   font-size: 17px;
   font-weight: 950;
 }
@@ -123,61 +114,74 @@
   content: "";
   position: absolute;
   left: 50%;
-  bottom: 4px;
-  width: 18px;
+  bottom: 3px;
+  width: 25px;
   height: 3px;
   border-radius: 999px;
-  background: #fff;
+  background: #7c7d83;
   transform: translateX(-50%);
 }
 
 .dyMallSearch {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 40px;
+  grid-template-columns: minmax(0, 1fr) 51px;
   align-items: center;
   gap: 6px;
+  padding: 0 12px;
 }
 
-.dyMallSearchSide,
 .dyMallSearch > a {
-  width: 40px;
-  height: 44px;
+  position: relative;
+  width: 49px;
+  height: 50px;
   display: grid;
   place-items: center;
-  color: rgba(255, 255, 255, 0.96);
+  color: #14161d;
   text-decoration: none;
-  filter: drop-shadow(0 2px 8px rgba(158, 16, 45, 0.22));
-}
-
-.dyMallSearchSide {
-  width: 48px;
-}
-
-.dyMallSearchSide img {
-  width: 42px;
-  height: 42px;
-  display: block;
-  object-fit: contain;
+  filter: none;
 }
 
 .dyMallSearch > a svg {
-  width: 34px;
-  height: 34px;
-  stroke-width: 2.25;
+  width: 39px;
+  height: 39px;
+  stroke-width: 2.05;
+}
+
+.dyMallCartEntry span {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid #d9dce1;
+  border-radius: 999px;
+  background: #fff;
+  color: #33343a;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .dyMallSearch label {
-  height: 44px;
+  height: 43px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) 34px auto;
+  grid-template-columns: 28px minmax(0, 1fr) 39px auto;
   align-items: center;
-  gap: 8px;
-  padding: 0 4px 0 14px;
-  border: 2px solid rgba(255, 37, 82, 0.92);
+  gap: 7px;
+  padding: 0 4px 0 13px;
+  border: 1.8px solid #f33263;
   border-radius: 999px;
   background: #fff;
-  color: #8b8d98;
-  box-shadow: 0 11px 22px rgba(233, 20, 64, 0.18);
+  color: #5e636c;
+  box-shadow: none;
+}
+
+.dyMallSearch label > svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.2;
 }
 
 .dyMallSearch input {
@@ -185,9 +189,9 @@
   border: 0;
   outline: 0;
   background: transparent;
-  color: #1f2229;
-  font-size: 16px;
-  font-weight: 720;
+  color: #555961;
+  font-size: 20px;
+  font-weight: 680;
 }
 
 .dyMallSearch input::placeholder {
@@ -199,8 +203,8 @@
 }
 
 .dyMallSearch button[type="button"] {
-  width: 34px;
-  height: 34px;
+  width: 39px;
+  height: 39px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -208,13 +212,19 @@
   color: #555b65;
 }
 
+.dyMallSearch button[type="button"] svg {
+  width: 30px;
+  height: 30px;
+  stroke-width: 2.2;
+}
+
 .dyMallSearch button[type="submit"] {
-  height: 36px;
-  padding: 0 18px;
+  height: 37px;
+  padding: 0 19px;
   border-radius: 999px;
   background: linear-gradient(135deg, #ff6c32, #ff1972);
   color: #fff;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 900;
 }
 
@@ -222,14 +232,12 @@
   position: relative;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 2px;
-  margin-top: 8px;
-  padding: 13px 7px 24px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.92) 100%);
-  box-shadow:
-    0 14px 26px rgba(146, 31, 36, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  gap: 0;
+  margin-top: 16px;
+  padding: 0 10px 26px;
+  border-radius: 0 0 18px 18px;
+  background: #fff;
+  box-shadow: none;
 }
 
 .dyMallShortcutPanel::after {
@@ -252,42 +260,178 @@
   min-width: 0;
   display: grid;
   justify-items: center;
-  gap: 8px;
-  color: #202229;
+  gap: 7px;
+  color: #22242a;
   text-decoration: none;
-  font-size: 13.5px;
-  font-weight: 890;
-  line-height: 1;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 780;
+  line-height: 1.08;
+}
+
+.dyMallShortcutPanel a > b {
+  max-width: 4em;
+  font-weight: inherit;
 }
 
 .dyMallShortcutIcon {
   position: relative;
-  width: 51px;
-  height: 48px;
+  width: 58px;
+  height: 54px;
   display: grid;
   place-items: center;
   color: #222733;
 }
 
-.dyMallShortcutIcon img {
-  width: 43px;
-  height: 43px;
+.dyMallShortcutArt {
+  position: relative;
+  width: 55px;
+  height: 51px;
   display: block;
-  object-fit: contain;
-  filter: drop-shadow(1px 2px 0 rgba(255, 120, 36, 0.2));
 }
 
-.dyMallShortcutIcon em {
+.dyMallShortcutArt i,
+.dyMallShortcutArt em,
+.dyMallShortcutArt b {
   position: absolute;
-  top: -7px;
-  right: -9px;
-  max-width: 58px;
+  display: block;
+}
+
+.dyMallShortcutArt i {
+  inset: 7px 9px 6px 5px;
+  border: 3px solid #2f343d;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 10px -6px 0 #ff8a36;
+}
+
+.dyMallShortcutArt b {
+  inset: 8px 10px 8px 6px;
+  display: grid;
+  place-items: center;
+  color: #ff6b23;
+  font-size: 23px;
+  font-weight: 850;
+  font-style: normal;
+  line-height: 1;
+}
+
+.dyMallShortcutArt em {
+  width: 18px;
+  height: 6px;
+  left: 17px;
+  bottom: 13px;
+  border-radius: 999px;
+  background: #2581ff;
+  box-shadow: 0 -13px 0 #2581ff;
+}
+
+.dyMallShortcutArt-order em {
+  width: 18px;
+  left: 17px;
+  background: #2581ff;
+  box-shadow: 0 -13px 0 #2581ff, 0 -26px 0 #2581ff;
+}
+
+.dyMallShortcutArt-expense i {
+  border-radius: 8px 8px 13px 13px;
+  box-shadow: 8px 4px 0 #303540;
+}
+
+.dyMallShortcutArt-expense b {
+  color: #ff214f;
+}
+
+.dyMallShortcutArt-expense em {
+  display: none;
+}
+
+.dyMallShortcutArt-lottery i {
+  inset: 4px;
+  border-radius: 50%;
+  border-color: #303540;
+  box-shadow: 8px -5px 0 #ffc33f;
+}
+
+.dyMallShortcutArt-lottery b {
+  color: #ff7b19;
+  font-size: 23px;
+}
+
+.dyMallShortcutArt-lottery em {
+  width: 5px;
+  height: 10px;
+  right: 2px;
+  left: auto;
+  top: 16px;
+  bottom: auto;
+  background: #303540;
+  transform: rotate(19deg);
+  box-shadow: none;
+}
+
+.dyMallShortcutArt-recharge i {
+  box-shadow: 8px -5px 0 #ff8d36;
+}
+
+.dyMallShortcutArt-recharge b {
+  color: #28a4ee;
+  font-size: 22px;
+}
+
+.dyMallShortcutArt-recharge em {
+  width: 14px;
+  height: 4px;
+  left: 17px;
+  bottom: 11px;
+  background: #28a4ee;
+  box-shadow: 0 -13px 0 #28a4ee;
+}
+
+.dyMallShortcutArt-coupon i {
+  border-radius: 8px;
+  box-shadow: 8px -5px 0 #ff8d36;
+}
+
+.dyMallShortcutArt-coupon i::before,
+.dyMallShortcutArt-coupon i::after {
+  content: "";
+  position: absolute;
+  right: -7px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.dyMallShortcutArt-coupon i::before {
+  top: 3px;
+}
+
+.dyMallShortcutArt-coupon i::after {
+  bottom: 3px;
+}
+
+.dyMallShortcutArt-coupon em {
+  width: 14px;
+  height: 5px;
+  left: 16px;
+  bottom: 12px;
+  background: #f04452;
+  box-shadow: 0 -14px 0 #f04452;
+}
+
+.dyMallShortcutIcon > em {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  max-width: 62px;
   overflow: hidden;
-  padding: 3px 7px;
+  padding: 3px 6px;
   border-radius: 999px;
   background: linear-gradient(135deg, #ff7cad, #ff3470);
   color: #fff;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 900;
   font-style: normal;
   line-height: 1;
@@ -356,11 +500,13 @@
   top: 0;
   z-index: 5;
   display: flex;
-  gap: 20px;
+  align-items: center;
+  gap: 22px;
   overflow-x: auto;
-  padding: 12px 14px 9px;
-  background: rgba(244, 244, 245, 0.94);
-  backdrop-filter: blur(14px);
+  padding: 13px 14px 12px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 1px 0 rgba(18, 20, 26, 0.05);
+  backdrop-filter: blur(12px);
   scrollbar-width: none;
 }
 
@@ -373,26 +519,39 @@
   flex: 0 0 auto;
   border: 0;
   background: transparent;
-  color: #696b72;
-  font-size: 18px;
-  font-weight: 820;
+  color: #666a72;
+  font-size: 21px;
+  font-weight: 760;
   white-space: nowrap;
 }
 
 .dyMallCategoryTabs button.isActive {
   color: #161616;
+  font-size: 26px;
+  font-weight: 900;
 }
 
 .dyMallCategoryTabs button.isActive::after {
   content: "";
   position: absolute;
-  left: 50%;
-  bottom: -7px;
-  width: 22px;
-  height: 4px;
+  left: 36px;
+  bottom: -5px;
+  width: 19px;
+  height: 8px;
   border-radius: 999px;
   background: #ff2b58;
-  transform: translateX(-50%);
+  transform: rotate(-8deg);
+}
+
+.dyMallCategoryTabs button.isActive::before {
+  content: "";
+  position: absolute;
+  right: -16px;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff2b58;
 }
 
 .dyMallInlineNotice,

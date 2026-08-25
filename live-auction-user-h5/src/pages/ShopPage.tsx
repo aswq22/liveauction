@@ -7,16 +7,14 @@ import { DouyinTabBar } from '../shared/ui/DouyinTabBar';
 import './shop-replica.css';
 
 const NAV_ITEMS = ['热点', '长视频', '关注', '直播', '商城', '推荐'];
-const CATEGORY_TABS = ['推荐', '直播精选', '珠宝玉石', '项链吊坠', '手链手串', '收纳配饰'];
-const SEARCH_HINTS = ['冰阳绿翡翠手镯', '送礼项链', '低价开拍', '直播同款'];
-const SHOP_ICON_BASE = '/shop-icon-drafts/';
-
+const CATEGORY_TABS = ['推荐', '直播精选', '新品', '关注', '游戏CLUB', '女装', '内衣'];
+const SEARCH_HINTS = ['无痕四角裤', '运动袜', '厚底小皮鞋', '脚膜袜'];
 const SHORTCUTS = [
-  { label: '我的订单', href: '/shop/orders', icon: 'order.svg', badge: '' },
-  { label: '订单报销', href: '/shop/orders?status=paid', icon: 'reimbursement.svg', badge: '待领券' },
-  { label: '天天抽券', href: '/shop?entry=coupon', icon: 'daily-lottery.svg', badge: '' },
-  { label: '充值中心', href: '/shop?entry=recharge', icon: 'recharge.svg', badge: '抢4元' },
-  { label: '券红包', href: '/shop?entry=gift', icon: 'coupon-wallet.svg', badge: '10张券' },
+  { label: '我的订单', href: '/shop/orders', icon: 'order', badge: '待收货5' },
+  { label: '订单报销', href: '/shop/orders?status=paid', icon: 'expense', badge: '' },
+  { label: '天天抽券', href: '/shop?entry=coupon', icon: 'lottery', badge: '' },
+  { label: '充值中心', href: '/shop?entry=recharge', icon: 'recharge', badge: '抢4元' },
+  { label: '券红包', href: '/shop?entry=gift', icon: 'coupon', badge: '' },
 ];
 
 const NAV_HREF: Record<string, string> = {
@@ -32,6 +30,16 @@ function productMatches(product: ShopProduct, keyword: string, category: string)
   const matchCategory = category === '推荐' || product.category === category || product.tags.includes(category);
   const text = [product.title, product.subtitle, product.category, product.shopName, ...product.tags].join(' ');
   return matchCategory && (!keyword || text.includes(keyword));
+}
+
+function ShopShortcutIcon({ type }: { type: string }) {
+  return (
+    <span className={`dyMallShortcutArt dyMallShortcutArt-${type}`} aria-hidden="true">
+      <i />
+      <b>{type === 'lottery' ? '抽' : type === 'recharge' ? '充' : type === 'expense' ? '¥' : ''}</b>
+      <em />
+    </span>
+  );
 }
 
 export function ShopPage() {
@@ -69,8 +77,6 @@ export function ShopPage() {
     return products.filter((item) => productMatches(item, keyword, activeCategory));
   }, [activeCategory, products, submittedQuery]);
 
-  const hotProducts = useMemo(() => products.slice(0, 4), [products]);
-
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmittedQuery(query.trim());
@@ -100,55 +106,28 @@ export function ShopPage() {
         </header>
 
         <form className="dyMallSearch" onSubmit={handleSearch}>
-          <span className="dyMallSearchSide" aria-hidden="true">
-            <img src={`${SHOP_ICON_BASE}message-dots.svg`} alt="" />
-          </span>
           <label>
             <Search size={20} />
             <input aria-label="搜索商品" value={query} onChange={(event) => setQuery(event.target.value)} />
             <button type="button" aria-label="拍照搜索"><Camera size={22} /></button>
             <button type="submit">搜索</button>
           </label>
-          <a href="/shop?panel=cart" aria-label="购物车"><ShoppingCart size={24} /></a>
+          <a href="/shop?panel=cart" aria-label="购物车" className="dyMallCartEntry">
+            <ShoppingCart size={24} />
+            <span>2</span>
+          </a>
         </form>
 
         <section className="dyMallShortcutPanel" aria-label="商城快捷入口">
           {SHORTCUTS.map(({ label, href, icon, badge }) => (
             <a href={href} key={label}>
               <span className="dyMallShortcutIcon">
-                <img src={`${SHOP_ICON_BASE}${icon}`} alt="" aria-hidden="true" />
+                <ShopShortcutIcon type={icon} />
                 {badge ? <em>{badge}</em> : null}
               </span>
               <b>{label}</b>
             </a>
           ))}
-        </section>
-
-        <section className="dyMallPromoGrid" aria-label="优惠活动">
-          <article>
-            <strong>限时疯抢</strong>
-            <span>百秒抢购 低至1元</span>
-            <div>
-              {hotProducts.slice(0, 2).map((product) => (
-                <a href={`/shop/detail?id=${product.id}`} key={product.id}>
-                  <img src={product.mainImageUrl} alt={product.title} />
-                  <b>￥{formatShopMoney(product.priceAmount)}</b>
-                </a>
-              ))}
-            </div>
-          </article>
-          <article>
-            <strong>大牌试用</strong>
-            <span>直播好物 小样尝鲜</span>
-            <div>
-              {hotProducts.slice(2, 4).map((product) => (
-                <a href={`/shop/detail?id=${product.id}`} key={product.id}>
-                  <img src={product.mainImageUrl} alt={product.title} />
-                  <b>￥{formatShopMoney(product.priceAmount)}</b>
-                </a>
-              ))}
-            </div>
-          </article>
         </section>
       </section>
 

@@ -1,0 +1,157 @@
+services:
+  auction-backend-loadtest:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.loadtest-runtime
+    image: live-auction-bid-backend:loadtest
+    container_name: live-auction-loadtest-backend
+    environment:
+      AUCTION_HTTP_ADDR: ":18080"
+      AUCTION_ENV: "loadtest"
+      AUCTION_INSTANCE_ID: "loadtest-docker"
+      AUCTION_WS_ALLOW_MISSING_ORIGIN: "true"
+      AUCTION_WS_TICKET_TTL: "60s"
+      AUCTION_BID_SYNC_PROJECTION: "false"
+      AUCTION_BID_DB_GUARD_MODE: "always"
+      AUCTION_VERBOSE_BID_LOG: "false"
+      AUCTION_RUNTIME_PROJECTION_WORKER_ENABLED: "true"
+      AUCTION_RUNTIME_PROJECTION_SHARDS: "32"
+      AUCTION_RUNTIME_PROJECTION_INTERVAL: "500ms"
+      AUCTION_RUNTIME_PROJECTION_BATCH_LIMIT: "500"
+      AUCTION_DB_MAX_OPEN_CONNS: "120"
+      AUCTION_DB_MAX_IDLE_CONNS: "60"
+      AUCTION_DB_CONN_MAX_LIFETIME: "30m"
+      AUCTION_DB_CONN_MAX_IDLE_TIME: "2m"
+      AUCTION_REDIS_POOL_SIZE: "512"
+      AUCTION_REDIS_MIN_IDLE_CONNS: "64"
+      AUCTION_MYSQL_DSN: "auction:auction_dev@tcp(mysql-loadtest:3306)/live_auction_loadtest?parseTime=true&charset=utf8mb4&loc=Local"
+      AUCTION_REDIS_ADDR: "redis-loadtest:6379"
+      AUCTION_REDIS_PASSWORD: "auction_redis_loadtest"
+      AUCTION_REALTIME_BUS: "rabbitmq"
+      AUCTION_REALTIME_BUS_RABBITMQ_URL: "amqp://auction_loadtest:auction_mq_loadtest@rabbitmq-loadtest:5672/"
+      AUCTION_REALTIME_BUS_RABBITMQ_EXCHANGE: "auction.loadtest.events"
+      AUCTION_REALTIME_BUS_RABBITMQ_ROUTING_KEY: "auction.loadtest.realtime.event"
+      AUCTION_REALTIME_BUS_RABBITMQ_QUEUE: "auction.loadtest.realtime.websocket"
+      AUCTION_REALTIME_BUS_RABBITMQ_CONSUMER: "loadtest-docker"
+      AUCTION_REALTIME_BUS_RABBITMQ_PREFETCH: "500"
+      AUCTION_SEARCH_PROVIDER: ""
+      AUCTION_AI_PROVIDER: "mock"
+      AUCTION_AI_MOCK_ON_FAILURE: "true"
+      AUCTION_PAYMENT_PROVIDER: "mock"
+      AUCTION_CONSUL_ADDR: "consul-loadtest:8500"
+      AUCTION_SERVICE_NAME: "auction-backend-loadtest"
+      AUCTION_SERVICE_ADDR: "auction-backend-loadtest"
+      AUCTION_JWT_SECRET: "loadtest-docker-jwt-secret-change-me"
+      AUCTION_JWT_ISSUER: "auction-backend-loadtest"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_USERNAME: "loadtest-main"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_PASSWORD: "loadtest_main_password"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_NICKNAME: "loadtest-main"
+      AUCTION_STORAGE_PROVIDER: "local"
+      AUCTION_LOCAL_STORAGE_DIR: "/data/live-auction-loadtest-assets"
+      AUCTION_LOCAL_STORAGE_BUCKET: "loadtest-local"
+      AUCTION_LOCAL_STORAGE_PUBLIC_BASE_URL: "http://localhost:18081/assets"
+      AUCTION_TEMP_ASSET_CLEANUP_INTERVAL: "1h"
+    ports:
+      - "18081:18080"
+    volumes:
+      - ./loadtest-assets:/data/live-auction-loadtest-assets
+    depends_on:
+      mysql-loadtest:
+        condition: service_healthy
+      redis-loadtest:
+        condition: service_healthy
+      rabbitmq-loadtest:
+        condition: service_healthy
+      consul-loadtest:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:18080/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+    networks:
+      - live-auction-loadtest
+
+  mysql-loadtest:
+    image: mysql:8.4
+    container_name: live-auction-loadtest-mysql
+    environment:
+      MYSQL_DATABASE: live_auction_loadtest
+      MYSQL_USER: auction
+      MYSQL_PASSWORD: auction_dev
+      MYSQL_ROOT_PASSWORD: auction_root_loadtest
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --innodb-buffer-pool-size=768M
+      - --max-connections=512
+    ports:
+      - "23306:3306"
+    volumes:
+      - live-auction-loadtest-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uauction -pauction_dev --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+    networks:
+      - live-auction-loadtest
+
+  redis-loadtest:
+    image: redis:7.2-alpine
+    container_name: live-auction-loadtest-redis
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "auction_redis_loadtest", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "26379:6379"
+    volumes:
+      - live-auction-loadtest-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "auction_redis_loadtest", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+    networks:
+      - live-auction-loadtest
+
+  rabbitmq-loadtest:
+    image: rabbitmq:3.13-management
+    container_name: live-auction-loadtest-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: auction_loadtest
+      RABBITMQ_DEFAULT_PASS: auction_mq_loadtest
+    ports:
+      - "25672:5672"
+      - "25673:15672"
+    volumes:
+      - live-auction-loadtest-rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+    networks:
+      - live-auction-loadtest
+
+  consul-loadtest:
+    image: hashicorp/consul:1.18
+    container_name: live-auction-loadtest-consul
+    command: ["agent", "-dev", "-client=0.0.0.0"]
+    ports:
+      - "28500:8500"
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+    networks:
+      - live-auction-loadtest
+
+volumes:
+  live-auction-loadtest-mysql:
+  live-auction-loadtest-redis:
+  live-auction-loadtest-rabbitmq:
+
+networks:
+  live-auction-loadtest:
+    driver: bridge

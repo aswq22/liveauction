@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"google.golang.org/protobuf/proto"
@@ -16,6 +17,8 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/pkg/clock"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
+
+var redisStreamBidFallbackLogged atomic.Bool
 
 // AuctionUsecase 编排直播竞拍业务流程。
 //
@@ -414,6 +417,29 @@ func (uc *AuctionUsecase) QueueLot(ctx context.Context, lotID, mainAccountID, ow
 	return proto.Clone(lot).(*v1.Lot), queuePosition, nil
 }
 
+func (uc *AuctionUsecase) RelistLot(ctx context.Context, sourceLotID, mainAccountID, ownerUserID string) (*v1.Lot, int32, error) {
+	sourceLotID = strings.TrimSpace(sourceLotID)
+	if sourceLotID == "" {
+		return nil, 0, errors.New("lot id is required")
+	}
+	if uc.orders == nil {
+		return nil, 0, errors.New("order repository is required")
+	}
+	if _, found, err := uc.orders.FindOrderByLot(ctx, sourceLotID); err != nil {
+		return nil, 0, err
+	} else if found {
+		return nil, 0, fmt.Errorf("%w: lot with order cannot be relisted", apperr.ErrInvalidArgument)
+	}
+	lot, queuePosition, events, err := uc.lots.RelistLotAsNext(ctx, sourceLotID, idgen.New("lot"), mainAccountID, ownerUserID, clock.NowMs())
+	if err != nil {
+		return nil, 0, err
+	}
+	if err := uc.broadcast(ctx, events...); err != nil {
+		return nil, 0, err
+	}
+	return proto.Clone(lot).(*v1.Lot), queuePosition, nil
+}
+
 func (uc *AuctionUsecase) GetLot(ctx context.Context, lotID string) (*v1.Lot, error) {
 	if lotID == "" {
 		return nil, fmt.Errorf("%w: lot id is required", apperr.ErrInvalidArgument)
@@ -512,7 +538,11 @@ func (uc *AuctionUsecase) PlaceBid(ctx context.Context, req *v1.PlaceBidRequest,
 		return depositLot, nil, nil, err
 	}
 	if uc.runtime != nil && uc.projector != nil {
-		return uc.placeBidRuntime(ctx, req, bidderID, nickname, avatarURL)
+		lot, bid, ranking, err := uc.placeBidRuntime(ctx, req, bidderID, nickname, avatarURL)
+		if err == nil || !isRedisStreamCommandUnsupported(err) {
+			return lot, bid, ranking, err
+		}
+		logRedisStreamBidFallbackOnce(req.GetLotId(), bidderID, err)
 	}
 
 	for attempt := 0; attempt < fallbackBidMaxRetries; attempt++ {
@@ -1199,6 +1229,19 @@ func (uc *AuctionUsecase) ListOrders(ctx context.Context, query OrderQuery) (Ord
 	return uc.orders.ListOrders(ctx, query)
 }
 
+func (uc *AuctionUsecase) ReconcilePayments(ctx context.Context, nowMs int64, limit int) (PaymentReconcileSummary, error) {
+	if nowMs <= 0 {
+		return PaymentReconcileSummary{}, fmt.Errorf("%w: now ms is required", apperr.ErrInvalidArgument)
+	}
+	if uc.payments == nil {
+		return PaymentReconcileSummary{}, errors.New("payment repository is required")
+	}
+	if limit <= 0 {
+		limit = 100
+	}
+	return uc.payments.ReconcilePayments(ctx, nowMs, limit)
+}
+
 func (uc *AuctionUsecase) ListRoomEvents(ctx context.Context, query RoomEventQuery) (RoomEventList, error) {
 	if query.RoomID == "" {
 		return RoomEventList{}, errors.New("room id is required")
@@ -1364,7 +1407,7 @@ func (uc *AuctionUsecase) ensureDepositHeld(ctx context.Context, lot *v1.Lot, bi
 		return apperr.ErrNotFound
 	}
 	depositAmount, depositCurrency := requiredDepositMoney(lot)
-	if uc.deposits == nil && depositAmount <= 0 {
+	if depositAmount <= 0 {
 		return nil
 	}
 	if uc.deposits == nil {
@@ -1392,6 +1435,29 @@ func bidderAvatarURL(userID string, avatarURLs ...string) string {
 	return userbiz.AvatarURLForUserID(userID)
 }
 
+func isRedisStreamCommandUnsupported(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	if strings.Contains(message, "unknown command") && strings.Contains(message, "xadd") {
+		return true
+	}
+	return strings.Contains(message, "unknown redis command") ||
+		strings.Contains(message, "unknown command called from lua script")
+}
+
+func logRedisStreamBidFallbackOnce(lotID, userID string, err error) {
+	if !redisStreamBidFallbackLogged.CompareAndSwap(false, true) {
+		return
+	}
+	slog.Warn("runtime bid stream unsupported; falling back to db bid path",
+		"lot_id", lotID,
+		"user_id", userID,
+		"error", err,
+	)
+}
+
 func (uc *AuctionUsecase) MockPayOrder(ctx context.Context, buyerUserID, orderID string, req MockPayRequest) (*PaymentResult, error) {
 	if buyerUserID == "" {
 		return nil, fmt.Errorf("%w: buyer user id is required", apperr.ErrInvalidArgument)
@@ -1412,9 +1478,21 @@ func (uc *AuctionUsecase) MockPayOrder(ctx context.Context, buyerUserID, orderID
 	if req.IdempotencyKey == "" {
 		return nil, fmt.Errorf("%w: payment idempotency key is required", apperr.ErrInvalidArgument)
 	}
+	provider := uc.paymentProvider
+	if provider == nil {
+		mock := NewMockPaymentProvider()
+		provider = mock
+	}
+	providerName := strings.TrimSpace(provider.Name())
+	if providerName == "" {
+		return nil, apperr.ErrPaymentProviderNotConfigured
+	}
 	if existing, found, err := uc.payments.FindPaymentByIdempotencyKey(ctx, orderID, req.IdempotencyKey); err != nil {
 		return nil, err
 	} else if found {
+		if err := ValidatePaymentReplay(*existing, *order, req.Amount, req.Currency, providerName); err != nil {
+			return nil, err
+		}
 		return uc.replayPayment(ctx, orderID, existing)
 	}
 	if req.Currency == "" {
@@ -1425,17 +1503,32 @@ func (uc *AuctionUsecase) MockPayOrder(ctx context.Context, buyerUserID, orderID
 	if order.ExpiresAtUnixMs > 0 && order.ExpiresAtUnixMs <= nowMs {
 		return nil, fmt.Errorf("%w: order payment window expired", apperr.ErrInvalidArgument)
 	}
-	payment, err := NewPayment(idgen.New("pay"), *order, req.IdempotencyKey, req.Amount, req.Currency, nowMs)
+	payment, err := NewPayment(idgen.New("pay"), *order, providerName, req.IdempotencyKey, req.Amount, req.Currency, nowMs)
 	if err != nil {
 		return nil, err
 	}
 	if err := payment.MarkProcessing(nowMs); err != nil {
 		return nil, err
 	}
-	if err := payment.MarkSuccess(nowMs); err != nil {
+	providerResult, err := provider.Pay(ctx, PaymentProviderRequest{
+		BusinessID:     payment.ID,
+		BusinessType:   "auction_order",
+		UserID:         buyerUserID,
+		Amount:         payment.Amount,
+		Currency:       payment.Currency,
+		IdempotencyKey: payment.IdempotencyKey,
+	})
+	if err != nil {
 		return nil, err
 	}
-	if err := MarkOrderPaid(order, *payment, nowMs); err != nil {
+	paidAtMs := providerResult.PaidAtUnixMs
+	if paidAtMs <= 0 {
+		paidAtMs = nowMs
+	}
+	if err := payment.MarkSuccess(providerResult.ProviderPaymentID, paidAtMs); err != nil {
+		return nil, err
+	}
+	if err := MarkOrderPaid(order, *payment, paidAtMs); err != nil {
 		return nil, err
 	}
 	lot, err := uc.lots.FindByID(ctx, order.LotID)
@@ -1448,6 +1541,9 @@ func (uc *AuctionUsecase) MockPayOrder(ctx context.Context, buyerUserID, orderID
 		if existing, found, replayErr := uc.payments.FindPaymentByIdempotencyKey(ctx, orderID, req.IdempotencyKey); replayErr != nil {
 			return nil, replayErr
 		} else if found {
+			if replayValidateErr := ValidatePaymentReplay(*existing, *order, req.Amount, req.Currency, providerName); replayValidateErr != nil {
+				return nil, replayValidateErr
+			}
 			return uc.replayPayment(ctx, orderID, existing)
 		}
 		return nil, err

@@ -37,12 +37,31 @@ const lotStatusValues = new Set<LotStatus>([
   'LOT_STATUS_FAILED',
 ]);
 
+const lotStatusNumberValues: Record<string, LotStatus> = {
+  '0': 'LOT_STATUS_UNSPECIFIED',
+  '1': 'LOT_STATUS_DRAFT',
+  '2': 'LOT_STATUS_LIVE',
+  '3': 'LOT_STATUS_SETTLED',
+  '4': 'LOT_STATUS_CANCELLED',
+  '5': 'LOT_STATUS_READY',
+  '6': 'LOT_STATUS_QUEUED',
+  '7': 'LOT_STATUS_EXTENDED',
+  '8': 'LOT_STATUS_FAILED',
+};
+
 const lotQueueStatusValues = new Set<LotQueueStatus>([
   'LOT_QUEUE_STATUS_UNSPECIFIED',
   'LOT_QUEUE_STATUS_NONE',
   'LOT_QUEUE_STATUS_QUEUED',
   'LOT_QUEUE_STATUS_NEXT',
 ]);
+
+const lotQueueStatusNumberValues: Record<string, LotQueueStatus> = {
+  '0': 'LOT_QUEUE_STATUS_UNSPECIFIED',
+  '1': 'LOT_QUEUE_STATUS_NONE',
+  '2': 'LOT_QUEUE_STATUS_QUEUED',
+  '3': 'LOT_QUEUE_STATUS_NEXT',
+};
 
 const trustCardTypeValues = new Set<TrustCardType>([
   'TRUST_CARD_TYPE_UNSPECIFIED',
@@ -168,13 +187,13 @@ function normalizeEnumArray<T extends string>(value: unknown, name: string, allo
   return normalizeStringArray(value, name).map((item) => normalizeEnum(item, name, allowed));
 }
 
-function normalizeEnum<T extends string>(value: unknown, name: string, allowed: Set<T>, fallback?: T): T {
+function normalizeEnum<T extends string>(value: unknown, name: string, allowed: Set<T>, fallback?: T, aliases: Record<string, T> = {}): T {
   if (value === undefined || value === null || value === '') {
     if (fallback !== undefined) return fallback;
     throw new Error(`response missing ${name}`);
   }
   const text = String(value);
-  const normalized = text as T;
+  const normalized = (aliases[text] ?? text) as T;
   if (!allowed.has(normalized)) throw new Error(`response ${name} has unknown enum value ${text}`);
   return normalized;
 }
@@ -271,8 +290,8 @@ export function normalizeLot(input: unknown): Lot {
     title: stringValue(field(raw, 'title')),
     description: stringValue(field(raw, 'description')),
     imageUrl: stringValue(field(raw, 'imageUrl', 'image_url')),
-    status: normalizeEnum(field(raw, 'status'), 'lot.status', lotStatusValues, 'LOT_STATUS_UNSPECIFIED'),
-    queueStatus: field(raw, 'queueStatus', 'queue_status') === undefined ? undefined : normalizeEnum(field(raw, 'queueStatus', 'queue_status'), 'lot.queueStatus', lotQueueStatusValues),
+    status: normalizeEnum(field(raw, 'status'), 'lot.status', lotStatusValues, 'LOT_STATUS_UNSPECIFIED', lotStatusNumberValues),
+    queueStatus: field(raw, 'queueStatus', 'queue_status') === undefined ? undefined : normalizeEnum(field(raw, 'queueStatus', 'queue_status'), 'lot.queueStatus', lotQueueStatusValues, undefined, lotQueueStatusNumberValues),
     queuePosition: field(raw, 'queuePosition', 'queue_position') === undefined ? undefined : numberValue(field(raw, 'queuePosition', 'queue_position')),
     rule: normalizeBidRule(field(raw, 'rule')),
     currentPrice: normalizeMoney(field(raw, 'currentPrice', 'current_price'), 'lot.currentPrice'),

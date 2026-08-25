@@ -1,0 +1,27 @@
+{
+  "baseUrl": "https://loadtest-api.example.com",
+  "mysql": {
+    "host": "loadtest-mysql.example.com",
+    "port": 3306,
+    "database": "live_auction_loadtest",
+    "user": "auction_loadtest",
+    "password": "replace-me"
+  },
+  "rabbitmq": {
+    "url": "amqp://auction_loadtest:replace-me@loadtest-rabbitmq.example.com:5672/loadtest",
+    "exchange": "auction.loadtest.events",
+    "queue": "auction.loadtest.realtime.websocket"
+  },
+  "profiles": {
+    "baseline": {
+      "buyers": 300,
+      "vus": 100,
+      "duration": "3m"
+    },
+    "high": {
+      "buyers": 5000,
+      "vus": 1000,
+      "duration": "10m"
+    }
+  }
+}

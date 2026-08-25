@@ -66,6 +66,9 @@ func (s *Store) CreateOrderForSettledLot(ctx context.Context, order auction.Orde
 		if err := tx.Create(itemModel).Error; err != nil {
 			return err
 		}
+		if err := releaseHeldDepositHoldsForLot(ctx, tx, order.LotID, order.UpdatedAtUnixMs); err != nil {
+			return err
+		}
 		return createEventModels(ctx, tx, events)
 	}); err != nil {
 		return err
@@ -247,14 +250,18 @@ func (s *Store) CommitPaymentSuccess(ctx context.Context, payment auction.Paymen
 			return err
 		}
 		updates := map[string]any{
-			"status":                  orderModel.Status,
-			"payment_status":          orderModel.PaymentStatus,
-			"payment_id":              orderModel.PaymentID,
-			"payment_idempotency_key": payment.IdempotencyKey,
-			"paid_at_unix_ms":         orderModel.PaidAtUnixMs,
-			"updated_at_unix_ms":      orderModel.UpdatedAtUnixMs,
-			"version":                 orderModel.Version,
-			"source_payload":          orderModel.SourcePayload,
+			"status":                        orderModel.Status,
+			"payment_status":                orderModel.PaymentStatus,
+			"payment_id":                    orderModel.PaymentID,
+			"payment_provider":              orderModel.PaymentProvider,
+			"payment_provider_payment_id":   orderModel.PaymentProviderPaymentID,
+			"payment_idempotency_key":       payment.IdempotencyKey,
+			"payment_request_fingerprint":   orderModel.PaymentRequestFingerprint,
+			"payment_reconciled_at_unix_ms": orderModel.PaymentReconciledAtUnixMs,
+			"paid_at_unix_ms":               orderModel.PaidAtUnixMs,
+			"updated_at_unix_ms":            orderModel.UpdatedAtUnixMs,
+			"version":                       orderModel.Version,
+			"source_payload":                orderModel.SourcePayload,
 		}
 		result := tx.Model(&UserOrderModel{}).
 			Where("id = ? AND source = ? AND version = ?", order.ID, userOrderSourceAuction, expectedOrderVersion).
@@ -272,9 +279,146 @@ func (s *Store) CommitPaymentSuccess(ctx context.Context, payment auction.Paymen
 	return s.streamEvents(ctx, events)
 }
 
-func (s *Store) findUserOrderItems(ctx context.Context, orderID string) ([]UserOrderItemModel, error) {
-	var items []UserOrderItemModel
+func (s *Store) ReconcilePayments(ctx context.Context, nowMs int64, limit int) (auction.PaymentReconcileSummary, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	summary := auction.PaymentReconcileSummary{}
+	var paymentModels []UserOrderPaymentModel
 	if err := s.db.WithContext(ctx).
+		Where("source = ? AND status = ? AND reconciled_at_unix_ms = 0", userOrderSourceAuction, string(auctionPaymentStatusToUser(auction.PaymentStatusSuccess))).
+		Order("updated_at_unix_ms ASC").
+		Limit(limit).
+		Find(&paymentModels).Error; err != nil {
+		return summary, err
+	}
+	summary.Scanned += len(paymentModels)
+	for i := range paymentModels {
+		paymentModel := paymentModels[i]
+		if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			var orderModel UserOrderModel
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("id = ? AND source = ?", paymentModel.OrderID, userOrderSourceAuction).
+				First(&orderModel).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					summary.Conflicts++
+					return nil
+				}
+				return err
+			}
+			items, err := findUserOrderItemsInTx(ctx, tx, orderModel.ID)
+			if err != nil {
+				return err
+			}
+			order, err := userModelToAuctionOrderWithItem(&orderModel, items)
+			if err != nil {
+				return err
+			}
+			payment, err := userModelToAuctionPayment(&paymentModel)
+			if err != nil {
+				return err
+			}
+			changed, err := auction.ReconcileOrderPayment(order, *payment, nowMs)
+			if err != nil {
+				summary.Conflicts++
+				return nil
+			}
+			orderUpdateModel, _, err := auctionOrderToUserModels(*order)
+			if err != nil {
+				return err
+			}
+			if changed {
+				updates := map[string]any{
+					"status":                        orderUpdateModel.Status,
+					"payment_status":                orderUpdateModel.PaymentStatus,
+					"payment_id":                    orderUpdateModel.PaymentID,
+					"payment_provider":              orderUpdateModel.PaymentProvider,
+					"payment_provider_payment_id":   orderUpdateModel.PaymentProviderPaymentID,
+					"payment_request_fingerprint":   orderUpdateModel.PaymentRequestFingerprint,
+					"payment_reconciled_at_unix_ms": orderUpdateModel.PaymentReconciledAtUnixMs,
+					"payment_idempotency_key":       payment.IdempotencyKey,
+					"paid_at_unix_ms":               orderUpdateModel.PaidAtUnixMs,
+					"updated_at_unix_ms":            orderUpdateModel.UpdatedAtUnixMs,
+					"version":                       orderUpdateModel.Version,
+					"source_payload":                orderUpdateModel.SourcePayload,
+				}
+				result := tx.Model(&UserOrderModel{}).
+					Where("id = ? AND source = ? AND version = ?", order.ID, userOrderSourceAuction, orderModel.Version).
+					Updates(updates)
+				if result.Error != nil {
+					return result.Error
+				}
+				if result.RowsAffected == 0 {
+					summary.Conflicts++
+					return nil
+				}
+				summary.OrdersPaid++
+			}
+			result := tx.Model(&UserOrderPaymentModel{}).
+				Where("id = ? AND source = ?", paymentModel.ID, userOrderSourceAuction).
+				Updates(map[string]any{
+					"reconciled_at_unix_ms": nowMs,
+					"updated_at_unix_ms":    nowMs,
+				})
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected > 0 {
+				summary.PaymentsMarked++
+			}
+			return nil
+		}); err != nil {
+			return summary, err
+		}
+	}
+
+	var expiredOrders []UserOrderModel
+	if err := s.db.WithContext(ctx).
+		Where("source = ? AND status = ? AND payment_status <> ? AND expires_at_unix_ms > 0 AND expires_at_unix_ms <= ?",
+			userOrderSourceAuction,
+			string(auctionOrderStatusToUser(auction.OrderStatusPendingPayment)),
+			string(auctionPaymentStatusToUser(auction.PaymentStatusSuccess)),
+			nowMs,
+		).
+		Order("expires_at_unix_ms ASC").
+		Limit(limit).
+		Find(&expiredOrders).Error; err != nil {
+		return summary, err
+	}
+	summary.Scanned += len(expiredOrders)
+	if len(expiredOrders) > 0 {
+		ids := make([]string, 0, len(expiredOrders))
+		for _, order := range expiredOrders {
+			ids = append(ids, order.ID)
+		}
+		result := s.db.WithContext(ctx).Model(&UserOrderModel{}).
+			Where("id IN ? AND source = ? AND status = ? AND payment_status <> ?",
+				ids,
+				userOrderSourceAuction,
+				string(auctionOrderStatusToUser(auction.OrderStatusPendingPayment)),
+				string(auctionPaymentStatusToUser(auction.PaymentStatusSuccess)),
+			).
+			Updates(map[string]any{
+				"status":             string(auctionOrderStatusToUser(auction.OrderStatusExpired)),
+				"payment_status":     string(auctionPaymentStatusToUser(auction.PaymentStatusClosed)),
+				"updated_at_unix_ms": nowMs,
+				"version":            gorm.Expr("version + ?", 1),
+			})
+		if result.Error != nil {
+			return summary, result.Error
+		}
+		summary.OrdersClosed += int(result.RowsAffected)
+	}
+	return summary, nil
+}
+
+func (s *Store) findUserOrderItems(ctx context.Context, orderID string) ([]UserOrderItemModel, error) {
+	return findUserOrderItemsInTx(ctx, s.db, orderID)
+}
+
+func findUserOrderItemsInTx(ctx context.Context, tx *gorm.DB, orderID string) ([]UserOrderItemModel, error) {
+	var items []UserOrderItemModel
+	if err := tx.WithContext(ctx).
 		Where("order_id = ?", orderID).
 		Order("id ASC").
 		Find(&items).Error; err != nil {

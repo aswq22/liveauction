@@ -1125,6 +1125,10 @@ message AuctionOrderSummary {
   int64 updated_at_unix_ms = 17;
   int64 expires_at_unix_ms = 18;
   int64 paid_at_unix_ms = 19;
+  string payment_provider = 20;
+  string payment_provider_payment_id = 21;
+  string payment_request_fingerprint = 22;
+  int64 payment_reconciled_at_unix_ms = 23;
 }
 
 message AuctionBidRecord {

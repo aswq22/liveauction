@@ -53,6 +53,8 @@ export type Room = {
   name: string;
   platform?: string;
   platformRoomId?: string;
+  liveSourceUrl?: string;
+  liveStartedAtUnixMs?: number | string;
   status?: RoomStatus;
   createdByUserId?: string;
   createdAtUnixMs?: number | string;
@@ -283,6 +285,8 @@ export type RoomSnapshot = {
   roomName?: string;
   anchorName?: string;
   onlineCount?: number;
+  liveSourceUrl?: string;
+  liveStartedAtUnixMs?: number | string;
   serverTimeUnixMs?: number | string;
   currentLot?: Lot | null;
   ranking?: RankingItem[];

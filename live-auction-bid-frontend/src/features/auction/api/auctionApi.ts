@@ -238,6 +238,14 @@ export async function queueLot(lotId: string) {
   return { lot, queuePosition: raw.queuePosition ?? raw.queue_position ?? lot.queuePosition } as { lot: Lot; queuePosition?: number };
 }
 
+export async function relistLot(lotId: string) {
+  const reply = assertOkResult(await apiRequest<QueueLotReply>({ path: '/api/admin/lots/relist', method: 'POST', body: { lotId }, operation: 'relist-lot' }));
+  if (!reply.lot) throw new Error('response missing lot');
+  const raw = reply as QueueLotReply & { queue_position?: number };
+  const lot = normalizeLot(reply.lot);
+  return { lot, queuePosition: raw.queuePosition ?? raw.queue_position ?? lot.queuePosition } as { lot: Lot; queuePosition?: number };
+}
+
 export async function startLot(lotId: string) {
   return requireLot(assertOkResult(await apiRequest<StartLotReply>({ path: `/api/lots/${lotId}/start`, method: 'POST', body: {}, operation: 'start-lot' })));
 }

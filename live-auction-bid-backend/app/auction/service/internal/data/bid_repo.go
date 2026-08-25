@@ -288,6 +288,11 @@ func (s *Store) projectRuntimeEventInTx(ctx context.Context, tx *gorm.DB, projec
 		if err := createUserOrderWithItemsIgnoringDuplicates(ctx, tx, orderModel, orderItemModel); err != nil {
 			return outcome, err
 		}
+		if order != nil {
+			if err := releaseHeldDepositHoldsForLot(ctx, tx, order.LotID, order.UpdatedAtUnixMs); err != nil {
+				return outcome, err
+			}
+		}
 	}
 	if err := createEventModelsIgnoringDuplicates(ctx, tx, events); err != nil {
 		return outcome, err
@@ -331,6 +336,9 @@ func projectRuntimeFactsWithoutLotUpdate(ctx context.Context, tx *gorm.DB, bidMo
 	}
 	if orderModel != nil && lot.GetStatus() == v1.LotStatus_LOT_STATUS_SETTLED {
 		if err := createUserOrderWithItemsIgnoringDuplicates(ctx, tx, orderModel, orderItemModel); err != nil {
+			return err
+		}
+		if err := releaseHeldDepositHoldsForUserOrderModel(ctx, tx, orderModel); err != nil {
 			return err
 		}
 	}

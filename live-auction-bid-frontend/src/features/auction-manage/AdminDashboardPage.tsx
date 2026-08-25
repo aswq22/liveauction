@@ -364,6 +364,8 @@ function LiveBusinessPanel({ currentLot, recentBids, remainingMs, participantCou
 }
 
 function ActionChecklist({ analytics }: { analytics: DashboardAnalytics }) {
+  const queueShortfall = Math.max(0, 3 - analytics.queuedLots.length);
+  const abnormalActionCount = analytics.abnormalOrders.length + analytics.abnormalLots.length;
   const actions = [
     {
       label: '催付',
@@ -374,20 +376,20 @@ function ActionChecklist({ analytics }: { analytics: DashboardAnalytics }) {
       tone: 'warning' as StudioTone,
     },
     {
-      label: '补队列',
+      label: '添加拍品',
       href: '/admin/auctions/create',
-      count: Math.max(0, 3 - analytics.queuedLots.length),
-      detail: analytics.queuedLots.length >= 3 ? '本场队列充足' : `待开拍仅 ${analytics.queuedLots.length} 件`,
+      count: queueShortfall,
+      detail: queueShortfall === 0 ? '本场队列充足' : `建议再添加 ${queueShortfall} 件，当前待开拍 ${analytics.queuedLots.length} 件`,
       icon: <Package size={18} />,
-      tone: analytics.queuedLots.length >= 3 ? 'success' as StudioTone : 'warning' as StudioTone,
+      tone: queueShortfall === 0 ? 'success' as StudioTone : 'warning' as StudioTone,
     },
     {
       label: '处理异常',
       href: '/admin/orders',
-      count: analytics.abnormalOrders.length + analytics.abnormalLots.length,
-      detail: `${analytics.abnormalOrders.length} 个订单，${analytics.abnormalLots.length} 件拍品`,
+      count: abnormalActionCount,
+      detail: abnormalActionCount === 0 ? '当前暂无异常' : `异常订单 ${analytics.abnormalOrders.length}，异常拍品 ${analytics.abnormalLots.length}`,
       icon: <ShieldAlert size={18} />,
-      tone: 'danger' as StudioTone,
+      tone: abnormalActionCount > 0 ? 'danger' as StudioTone : 'success' as StudioTone,
     },
     {
       label: '复盘低转化拍品',
@@ -839,7 +841,7 @@ function isQueueLot(lot: Lot) {
 }
 
 function isAbnormalLot(lot: Lot) {
-  return lot.status === 'LOT_STATUS_CANCELLED' || lot.status === 'LOT_STATUS_FAILED';
+  return lot.status === 'LOT_STATUS_FAILED';
 }
 
 function lotHasBid(lot: Lot, snapshot: RoomSnapshot | null, orders: OrderSummary[]) {

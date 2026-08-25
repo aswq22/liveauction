@@ -63,6 +63,11 @@ type coalescedRoomEvents struct {
 	events map[v1.AuctionEventType]v1.AuctionEvent
 }
 
+type outboundMessage struct {
+	event                  v1.AuctionEvent
+	anonymousPublicPayload []byte
+}
+
 type connection struct {
 	hub       *Hub
 	roomID    string
@@ -72,7 +77,7 @@ type connection struct {
 	authCtx   auth.AuthContext
 	client    requestctx.RequestContext
 	conn      *websocket.Conn
-	send      chan v1.AuctionEvent
+	send      chan outboundMessage
 	done      chan struct{}
 	closeOnce sync.Once
 }
@@ -137,9 +142,13 @@ func (h *Hub) Publish(ctx context.Context, event v1.AuctionEvent) error {
 }
 
 func (h *Hub) deliver(_ context.Context, event v1.AuctionEvent) error {
+	message, err := h.prepareBroadcastMessage(event)
+	if err != nil {
+		return err
+	}
 	for _, conn := range h.roomConnections(event.RoomId) {
 		select {
-		case conn.send <- event:
+		case conn.send <- message:
 		case <-conn.done:
 		default:
 			observability.RecordWSEventDropped(event.GetType().String())
@@ -148,6 +157,17 @@ func (h *Hub) deliver(_ context.Context, event v1.AuctionEvent) error {
 		}
 	}
 	return nil
+}
+
+func (h *Hub) prepareBroadcastMessage(event v1.AuctionEvent) (outboundMessage, error) {
+	message := outboundMessage{event: event}
+	publicEvent := auctionbiz.EventForViewer(event, auctionbiz.LotResultViewer{})
+	payload, err := eventJSONMarshal.Marshal(&publicEvent)
+	if err != nil {
+		return outboundMessage{}, err
+	}
+	message.anonymousPublicPayload = payload
+	return message, nil
 }
 
 func (h *Hub) enqueueCoalesced(event v1.AuctionEvent) {
@@ -242,7 +262,7 @@ func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request, roomID string) {
 		authCtx: authCtx,
 		client:  requestctx.Snapshot(ctx),
 		conn:    conn,
-		send:    make(chan v1.AuctionEvent, connectionSendBuffer),
+		send:    make(chan outboundMessage, connectionSendBuffer),
 		done:    make(chan struct{}),
 	}
 	h.join(client)
@@ -420,7 +440,7 @@ func (h *Hub) enqueueSnapshot(ctx context.Context, conn *connection) {
 		event.MainAccountId = mainAccountID
 	}
 	select {
-	case conn.send <- event:
+	case conn.send <- outboundMessage{event: event}:
 	case <-conn.done:
 	default:
 		h.leave(conn)
@@ -506,22 +526,21 @@ func (c *connection) writePump() {
 
 	for {
 		select {
-		case event := <-c.send:
+		case message := <-c.send:
 			select {
 			case <-c.done:
 				return
 			default:
 			}
 			_ = c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
-			event = c.eventForDelivery(event)
-			payload, err := eventJSONMarshal.Marshal(&event)
+			payload, eventType, err := c.payloadForDelivery(message)
 			if err != nil {
 				return
 			}
 			if err := c.conn.WriteMessage(websocket.TextMessage, payload); err != nil {
 				return
 			}
-			observability.RecordWSEventSent(event.GetType().String())
+			observability.RecordWSEventSent(eventType.String())
 		case <-ticker.C:
 			_ = c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
@@ -531,6 +550,24 @@ func (c *connection) writePump() {
 			return
 		}
 	}
+}
+
+func (c *connection) payloadForDelivery(message outboundMessage) ([]byte, v1.AuctionEventType, error) {
+	if len(message.anonymousPublicPayload) > 0 && c.canUseAnonymousPublicPayload() {
+		return message.anonymousPublicPayload, message.event.GetType(), nil
+	}
+	event := c.eventForDelivery(message.event)
+	payload, err := eventJSONMarshal.Marshal(&event)
+	if err != nil {
+		return nil, event.GetType(), err
+	}
+	return payload, event.GetType(), nil
+}
+
+func (c *connection) canUseAnonymousPublicPayload() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.scope == ScopePublic && (c.authCtx.TokenStatus != auth.TokenStatusValid || c.authCtx.Claims == nil)
 }
 
 func (c *connection) eventForDelivery(event v1.AuctionEvent) v1.AuctionEvent {

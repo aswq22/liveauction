@@ -7,6 +7,7 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/aiassistant"
 	auctionbiz "live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	shopbiz "live-auction-bid/backend/app/auction/service/internal/biz/shop"
+	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 )
 
 func (s *AuctionService) GetLotResultView(ctx context.Context, req *v1.GetLotResultRequest) (*v1.GetLotResultReply, error) {
@@ -36,6 +37,13 @@ func (s *AuctionService) ListAdminAuctionOrders(ctx context.Context, req *v1.Lis
 		return &v1.ListAuctionOrdersReply{Result: ErrorResult(ctx, err), Orders: []*v1.AuctionOrderSummary{}}, nil
 	}
 	return auctionOrdersReply(ctx, list), nil
+}
+
+func (s *AuctionService) ReconcilePayments(ctx context.Context, nowMs int64, limit int) (auctionbiz.PaymentReconcileSummary, error) {
+	if _, _, err := requirePermissionMainAccount(ctx, userbiz.PermissionOrderManage); err != nil {
+		return auctionbiz.PaymentReconcileSummary{}, err
+	}
+	return s.auction.ReconcilePayments(ctx, nowMs, limit)
 }
 
 func (s *AuctionService) ListMyBidRecords(ctx context.Context, req *v1.ListBidRecordsRequest) (*v1.ListBidRecordsReply, error) {
@@ -146,25 +154,29 @@ func auctionOrderSummaryToProto(order *auctionbiz.OrderSummary) *v1.AuctionOrder
 		return nil
 	}
 	return &v1.AuctionOrderSummary{
-		Id:                      order.ID,
-		MainAccountId:           order.MainAccountID,
-		LotId:                   order.LotID,
-		RoomId:                  order.RoomID,
-		LotTitle:                order.LotTitle,
-		LotImageUrl:             order.LotImageURL,
-		BuyerUserId:             order.BuyerUserID,
-		BuyerNickname:           order.BuyerNickname,
-		Status:                  string(order.Status),
-		PaymentStatus:           string(order.PaymentStatus),
-		PaymentId:               order.PaymentID,
-		ShippingAddressId:       order.ShippingAddressID,
-		ShippingAddressSnapshot: auctionAddressSnapshotToProto(order.ShippingAddressSnapshot),
-		Amount:                  order.Amount,
-		Currency:                order.Currency,
-		CreatedAtUnixMs:         order.CreatedAtUnixMs,
-		UpdatedAtUnixMs:         order.UpdatedAtUnixMs,
-		ExpiresAtUnixMs:         order.ExpiresAtUnixMs,
-		PaidAtUnixMs:            order.PaidAtUnixMs,
+		Id:                        order.ID,
+		MainAccountId:             order.MainAccountID,
+		LotId:                     order.LotID,
+		RoomId:                    order.RoomID,
+		LotTitle:                  order.LotTitle,
+		LotImageUrl:               order.LotImageURL,
+		BuyerUserId:               order.BuyerUserID,
+		BuyerNickname:             order.BuyerNickname,
+		Status:                    string(order.Status),
+		PaymentStatus:             string(order.PaymentStatus),
+		PaymentId:                 order.PaymentID,
+		PaymentProvider:           order.PaymentProvider,
+		PaymentProviderPaymentId:  order.PaymentProviderPaymentID,
+		PaymentRequestFingerprint: order.PaymentRequestFingerprint,
+		PaymentReconciledAtUnixMs: order.PaymentReconciledAtUnixMs,
+		ShippingAddressId:         order.ShippingAddressID,
+		ShippingAddressSnapshot:   auctionAddressSnapshotToProto(order.ShippingAddressSnapshot),
+		Amount:                    order.Amount,
+		Currency:                  order.Currency,
+		CreatedAtUnixMs:           order.CreatedAtUnixMs,
+		UpdatedAtUnixMs:           order.UpdatedAtUnixMs,
+		ExpiresAtUnixMs:           order.ExpiresAtUnixMs,
+		PaidAtUnixMs:              order.PaidAtUnixMs,
 	}
 }
 

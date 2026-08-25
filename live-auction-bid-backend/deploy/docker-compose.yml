@@ -8,7 +8,7 @@ services:
     environment:
       AUCTION_HTTP_ADDR: ":18080"
       AUCTION_ENV: "${AUCTION_ENV:-dev}"
-      AUCTION_WS_ALLOWED_ORIGINS: "${AUCTION_WS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,http://120.79.7.110,http://120.79.7.110:8080}"
+      AUCTION_WS_ALLOWED_ORIGINS: "${AUCTION_WS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174}"
       AUCTION_WS_ALLOW_MISSING_ORIGIN: "${AUCTION_WS_ALLOW_MISSING_ORIGIN:-true}"
       AUCTION_WS_TICKET_TTL: "${AUCTION_WS_TICKET_TTL:-60s}"
       AUCTION_BID_SYNC_PROJECTION: "${AUCTION_BID_SYNC_PROJECTION:-false}"
@@ -29,6 +29,12 @@ services:
       AUCTION_MYSQL_DSN: "auction:auction_dev@tcp(mysql:3306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local"
       AUCTION_REDIS_ADDR: "redis:6379"
       AUCTION_REDIS_PASSWORD: "auction_redis"
+      AUCTION_REALTIME_BUS: "${AUCTION_REALTIME_BUS:-rabbitmq}"
+      AUCTION_REALTIME_BUS_RABBITMQ_URL: "${AUCTION_REALTIME_BUS_RABBITMQ_URL:-amqp://auction:auction_mq@rabbitmq:5672/}"
+      AUCTION_REALTIME_BUS_RABBITMQ_EXCHANGE: "${AUCTION_REALTIME_BUS_RABBITMQ_EXCHANGE:-auction.events}"
+      AUCTION_REALTIME_BUS_RABBITMQ_ROUTING_KEY: "${AUCTION_REALTIME_BUS_RABBITMQ_ROUTING_KEY:-auction.realtime.event}"
+      AUCTION_REALTIME_BUS_RABBITMQ_QUEUE: "${AUCTION_REALTIME_BUS_RABBITMQ_QUEUE:-auction.realtime.websocket}"
+      AUCTION_REALTIME_BUS_RABBITMQ_PREFETCH: "${AUCTION_REALTIME_BUS_RABBITMQ_PREFETCH:-100}"
       AUCTION_SEARCH_PROVIDER: "${AUCTION_SEARCH_PROVIDER:-}"
       AUCTION_SEARCH_PG_DSN: "${AUCTION_SEARCH_PG_DSN:-}"
       AUCTION_SEARCH_SYNC_INTERVAL: "${AUCTION_SEARCH_SYNC_INTERVAL:-5m}"
@@ -55,25 +61,30 @@ services:
       AUCTION_JWT_ISSUER: "auction-backend"
       AUCTION_BOOTSTRAP_MAIN_ACCOUNT_USERNAME: "main"
       AUCTION_BOOTSTRAP_MAIN_ACCOUNT_PASSWORD: "main_dev_password"
-      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_NICKNAME: "主账号"
-      # 图片对象存储：默认使用 TOS。启动前必须复制 deploy/.env.example 为 deploy/.env 并填写配置；
-      # 缺少 endpoint/region/bucket/AK/SK 时 Compose 或后端会 fail fast，不等到 upload 接口才报错。
-      AUCTION_STORAGE_PROVIDER: "${AUCTION_STORAGE_PROVIDER:-tos}"
-      AUCTION_TOS_ENDPOINT: "${AUCTION_TOS_ENDPOINT:?AUCTION_TOS_ENDPOINT is required}"
-      AUCTION_TOS_REGION: "${AUCTION_TOS_REGION:?AUCTION_TOS_REGION is required}"
-      AUCTION_TOS_BUCKET: "${AUCTION_TOS_BUCKET:?AUCTION_TOS_BUCKET is required}"
-      AUCTION_TOS_ACCESS_KEY: "${AUCTION_TOS_ACCESS_KEY:?AUCTION_TOS_ACCESS_KEY is required}"
-      AUCTION_TOS_SECRET_KEY: "${AUCTION_TOS_SECRET_KEY:?AUCTION_TOS_SECRET_KEY is required}"
+      AUCTION_BOOTSTRAP_MAIN_ACCOUNT_NICKNAME: "main"
+      AUCTION_STORAGE_PROVIDER: "${AUCTION_STORAGE_PROVIDER:-local}"
+      AUCTION_LOCAL_STORAGE_DIR: "${AUCTION_LOCAL_STORAGE_DIR:-/data/live-auction-assets}"
+      AUCTION_LOCAL_STORAGE_BUCKET: "${AUCTION_LOCAL_STORAGE_BUCKET:-local}"
+      AUCTION_LOCAL_STORAGE_PUBLIC_BASE_URL: "${AUCTION_LOCAL_STORAGE_PUBLIC_BASE_URL:-http://localhost:18080/assets}"
+      AUCTION_TOS_ENDPOINT: "${AUCTION_TOS_ENDPOINT:-}"
+      AUCTION_TOS_REGION: "${AUCTION_TOS_REGION:-}"
+      AUCTION_TOS_BUCKET: "${AUCTION_TOS_BUCKET:-}"
+      AUCTION_TOS_ACCESS_KEY: "${AUCTION_TOS_ACCESS_KEY:-}"
+      AUCTION_TOS_SECRET_KEY: "${AUCTION_TOS_SECRET_KEY:-}"
       AUCTION_TOS_PUBLIC_BASE_URL: "${AUCTION_TOS_PUBLIC_BASE_URL:-}"
       AUCTION_TOS_USE_SSL: "${AUCTION_TOS_USE_SSL:-true}"
       AUCTION_UPLOAD_STORAGE_TIMEOUT: "${AUCTION_UPLOAD_STORAGE_TIMEOUT:-30s}"
       AUCTION_TEMP_ASSET_CLEANUP_INTERVAL: "${AUCTION_TEMP_ASSET_CLEANUP_INTERVAL:-1h}"
     ports:
       - "18080:18080"
+    volumes:
+      - ./local-assets:/data/live-auction-assets
     depends_on:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       consul:
         condition: service_healthy
@@ -101,7 +112,7 @@ services:
     ports:
       - "13306:3306"
     volumes:
-      - live-auction-mysql:/var/lib/mysql
+      - ./mysql-data:/var/lib/mysql
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uauction -pauction_dev --silent"]
       interval: 10s
@@ -120,6 +131,25 @@ services:
       - live-auction-redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "auction_redis", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: live-auction-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: auction
+      RABBITMQ_DEFAULT_PASS: auction_mq
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    volumes:
+      - live-auction-rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -207,8 +237,8 @@ services:
       - live-auction
 
 volumes:
-  live-auction-mysql:
   live-auction-redis:
+  live-auction-rabbitmq:
   live-auction-pgvector:
   live-auction-prometheus:
   live-auction-grafana:

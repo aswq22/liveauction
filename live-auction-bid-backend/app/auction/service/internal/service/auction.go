@@ -121,6 +121,18 @@ func (s *AuctionService) QueueLot(ctx context.Context, req *v1.QueueLotRequest) 
 	return &v1.QueueLotReply{Result: okResult(ctx), Lot: lot, QueuePosition: queuePosition}, nil
 }
 
+func (s *AuctionService) RelistLot(ctx context.Context, lotID string) (*v1.QueueLotReply, error) {
+	claims, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionLotQueue)
+	if err != nil {
+		return &v1.QueueLotReply{Result: ErrorResult(ctx, err)}, nil
+	}
+	lot, queuePosition, err := s.auction.RelistLot(ctx, lotID, mainAccountID, claims.UserID)
+	if err != nil {
+		return &v1.QueueLotReply{Result: ErrorResult(ctx, err), Lot: lot}, nil
+	}
+	return &v1.QueueLotReply{Result: okResult(ctx), Lot: lot, QueuePosition: queuePosition}, nil
+}
+
 func (s *AuctionService) GetLot(ctx context.Context, req *v1.GetLotRequest) (*v1.GetLotReply, error) {
 	lot, err := s.auction.GetLot(ctx, req.GetLotId())
 	if err != nil {

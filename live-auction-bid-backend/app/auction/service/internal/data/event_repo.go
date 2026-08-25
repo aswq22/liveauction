@@ -3,8 +3,11 @@ package data
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -13,6 +16,8 @@ import (
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 )
+
+var redisStreamUnsupportedLogged atomic.Bool
 
 func (s *Store) Publish(ctx context.Context, event v1.AuctionEvent) error {
 	return s.PersistEvents(ctx, []v1.AuctionEvent{event})
@@ -127,13 +132,31 @@ func (s *Store) streamEvents(ctx context.Context, events []v1.AuctionEvent) erro
 			_ = s.markEventStreamError(ctx, event.Id, err)
 			return err
 		}
-		streamID, err := s.writeEventToStream(ctx, event, string(payload))
+		streamID, err := s.writeEventToTransport(ctx, event, string(payload))
 		if err != nil {
 			_ = s.markEventStreamError(ctx, event.Id, err)
-			return err
+			if isRedisStreamUnsupported(err) && !redisStreamRequired() {
+				_ = s.markEventStreamed(ctx, event.Id, "redis-stream-unsupported")
+				logRedisStreamUnsupportedOnce(event.Id, event.RoomId, event.LotId, err)
+				continue
+			}
+			slog.Warn("auction event stream write failed; event remains pending in outbox",
+				"event_id", event.Id,
+				"room_id", event.RoomId,
+				"lot_id", event.LotId,
+				"error", err,
+			)
+			continue
 		}
 		if err := s.markEventStreamed(ctx, event.Id, streamID); err != nil {
-			return err
+			slog.Warn("auction event stream ack failed; event remains pending in outbox",
+				"event_id", event.Id,
+				"room_id", event.RoomId,
+				"lot_id", event.LotId,
+				"stream_id", streamID,
+				"error", err,
+			)
+			continue
 		}
 	}
 	return nil
@@ -158,9 +181,16 @@ func (s *Store) RepairEventStreamOutbox(ctx context.Context, limit int) error {
 			_ = s.markEventStreamError(ctx, models[i].ID, err)
 			return err
 		}
-		streamID, err := s.writeEventToStream(ctx, event, models[i].Payload)
+		streamID, err := s.writeEventToTransport(ctx, event, models[i].Payload)
 		if err != nil {
 			_ = s.markEventStreamError(ctx, models[i].ID, err)
+			if isRedisStreamUnsupported(err) && !redisStreamRequired() {
+				if err := s.markEventStreamed(ctx, models[i].ID, "redis-stream-unsupported"); err != nil {
+					return err
+				}
+				logRedisStreamUnsupportedOnce(models[i].ID, models[i].RoomID, models[i].LotID, err)
+				continue
+			}
 			return err
 		}
 		if err := s.markEventStreamed(ctx, models[i].ID, streamID); err != nil {
@@ -195,6 +225,16 @@ func (s *Store) writeEventToStream(ctx context.Context, event v1.AuctionEvent, p
 	}).Result()
 }
 
+func (s *Store) writeEventToTransport(ctx context.Context, event v1.AuctionEvent, payload string) (string, error) {
+	if s.eventStreamer != nil {
+		if err := s.eventStreamer.Publish(ctx, event); err != nil {
+			return "", err
+		}
+		return "publisher:" + event.Id, nil
+	}
+	return s.writeEventToStream(ctx, event, payload)
+}
+
 func (s *Store) markEventStreamed(ctx context.Context, eventID, streamID string) error {
 	return s.db.WithContext(ctx).Model(&AuctionEventModel{}).
 		Where("id = ?", eventID).
@@ -217,4 +257,28 @@ func (s *Store) markEventStreamError(ctx context.Context, eventID string, err er
 
 func eventStreamKey(roomID string) string {
 	return "auction:events:" + roomID
+}
+
+func redisStreamRequired() bool {
+	return strings.ToLower(strings.TrimSpace(os.Getenv("AUCTION_REDIS_STREAM_REQUIRED"))) != "false"
+}
+
+func isRedisStreamUnsupported(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "unknown command") && strings.Contains(message, "xadd")
+}
+
+func logRedisStreamUnsupportedOnce(eventID, roomID, lotID string, err error) {
+	if !redisStreamUnsupportedLogged.CompareAndSwap(false, true) {
+		return
+	}
+	slog.Warn("redis stream is unsupported; auction events will be marked delivered for local development",
+		"event_id", eventID,
+		"room_id", roomID,
+		"lot_id", lotID,
+		"error", err,
+	)
 }

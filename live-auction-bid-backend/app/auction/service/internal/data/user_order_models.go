@@ -98,29 +98,33 @@ func auctionOrderToUserModels(order auction.Order) (*UserOrderModel, *UserOrderI
 		addressText = order.ShippingAddressSnapshot.FullAddress
 	}
 	model := &UserOrderModel{
-		ID:                      order.ID,
-		Source:                  userOrderSourceAuction,
-		SourceOrderID:           order.ID,
-		OrderNo:                 order.ID,
-		MainAccountID:           order.MainAccountID,
-		UserID:                  order.BuyerUserID,
-		Nickname:                order.BuyerNickname,
-		Status:                  string(auctionOrderStatusToUser(order.Status)),
-		PaymentStatus:           string(auctionPaymentStatusToUser(order.PaymentStatus)),
-		PaymentID:               order.PaymentID,
-		Title:                   order.LotTitle,
-		ShopName:                "直播竞拍",
-		TotalAmount:             order.Amount,
-		Currency:                order.Currency,
-		ShippingAddressID:       order.ShippingAddressID,
-		ShippingAddressSnapshot: addressSnapshot,
-		AddressSnapshot:         addressText,
-		CreatedAtUnixMs:         order.CreatedAtUnixMs,
-		UpdatedAtUnixMs:         order.UpdatedAtUnixMs,
-		PaidAtUnixMs:            order.PaidAtUnixMs,
-		ExpiresAtUnixMs:         order.ExpiresAtUnixMs,
-		Version:                 order.Version,
-		SourcePayload:           string(payload),
+		ID:                        order.ID,
+		Source:                    userOrderSourceAuction,
+		SourceOrderID:             order.ID,
+		OrderNo:                   order.ID,
+		MainAccountID:             order.MainAccountID,
+		UserID:                    order.BuyerUserID,
+		Nickname:                  order.BuyerNickname,
+		Status:                    string(auctionOrderStatusToUser(order.Status)),
+		PaymentStatus:             string(auctionPaymentStatusToUser(order.PaymentStatus)),
+		PaymentID:                 order.PaymentID,
+		PaymentProvider:           order.PaymentProvider,
+		PaymentProviderPaymentID:  order.PaymentProviderPaymentID,
+		PaymentRequestFingerprint: order.PaymentRequestFingerprint,
+		PaymentReconciledAtUnixMs: order.PaymentReconciledAtUnixMs,
+		Title:                     order.LotTitle,
+		ShopName:                  "直播竞拍",
+		TotalAmount:               order.Amount,
+		Currency:                  order.Currency,
+		ShippingAddressID:         order.ShippingAddressID,
+		ShippingAddressSnapshot:   addressSnapshot,
+		AddressSnapshot:           addressText,
+		CreatedAtUnixMs:           order.CreatedAtUnixMs,
+		UpdatedAtUnixMs:           order.UpdatedAtUnixMs,
+		PaidAtUnixMs:              order.PaidAtUnixMs,
+		ExpiresAtUnixMs:           order.ExpiresAtUnixMs,
+		Version:                   order.Version,
+		SourcePayload:             string(payload),
 	}
 	item := &UserOrderItemModel{
 		ID:           "auction_item_" + order.ID,
@@ -154,6 +158,10 @@ func userModelToAuctionOrder(model *UserOrderModel) (*auction.Order, error) {
 	order.Status = userOrderStatusToAuction(model.Status)
 	order.PaymentStatus = userPaymentStatusToAuction(model.PaymentStatus)
 	order.PaymentID = model.PaymentID
+	order.PaymentProvider = model.PaymentProvider
+	order.PaymentProviderPaymentID = model.PaymentProviderPaymentID
+	order.PaymentRequestFingerprint = model.PaymentRequestFingerprint
+	order.PaymentReconciledAtUnixMs = model.PaymentReconciledAtUnixMs
 	order.ShippingAddressID = model.ShippingAddressID
 	if strings.TrimSpace(model.ShippingAddressSnapshot) != "" {
 		var snapshot shop.DeliveryAddressSnapshot
@@ -191,22 +199,34 @@ func auctionPaymentToUserModel(payment auction.Payment) (*UserOrderPaymentModel,
 	if err != nil {
 		return nil, err
 	}
+	var providerPaymentID *string
+	if strings.TrimSpace(payment.ProviderPaymentID) != "" {
+		value := payment.ProviderPaymentID
+		providerPaymentID = &value
+	}
+	provider := strings.TrimSpace(payment.Provider)
+	if provider == "" {
+		provider = mockPaymentProvider
+	}
 	return &UserOrderPaymentModel{
-		ID:              payment.ID,
-		OrderID:         payment.OrderID,
-		Source:          userOrderSourceAuction,
-		Provider:        mockPaymentProvider,
-		MainAccountID:   payment.MainAccountID,
-		LotID:           payment.LotID,
-		UserID:          payment.BuyerUserID,
-		Status:          string(auctionPaymentStatusToUser(payment.Status)),
-		Amount:          payment.Amount,
-		Currency:        payment.Currency,
-		IdempotencyKey:  payment.IdempotencyKey,
-		CreatedAtUnixMs: payment.CreatedAtUnixMs,
-		UpdatedAtUnixMs: payment.UpdatedAtUnixMs,
-		SucceededAtMs:   payment.SucceededAtMs,
-		SourcePayload:   string(payload),
+		ID:                 payment.ID,
+		OrderID:            payment.OrderID,
+		Source:             userOrderSourceAuction,
+		Provider:           provider,
+		ProviderPaymentID:  providerPaymentID,
+		MainAccountID:      payment.MainAccountID,
+		LotID:              payment.LotID,
+		UserID:             payment.BuyerUserID,
+		Status:             string(auctionPaymentStatusToUser(payment.Status)),
+		Amount:             payment.Amount,
+		Currency:           payment.Currency,
+		IdempotencyKey:     payment.IdempotencyKey,
+		RequestFingerprint: payment.RequestFingerprint,
+		CreatedAtUnixMs:    payment.CreatedAtUnixMs,
+		UpdatedAtUnixMs:    payment.UpdatedAtUnixMs,
+		SucceededAtMs:      payment.SucceededAtMs,
+		ReconciledAtUnixMs: payment.ReconciledAtUnixMs,
+		SourcePayload:      string(payload),
 	}, nil
 }
 
@@ -223,12 +243,18 @@ func userModelToAuctionPayment(model *UserOrderPaymentModel) (*auction.Payment, 
 	payment.LotID = model.LotID
 	payment.BuyerUserID = model.UserID
 	payment.Status = userPaymentStatusToAuction(model.Status)
+	payment.Provider = model.Provider
+	if model.ProviderPaymentID != nil {
+		payment.ProviderPaymentID = *model.ProviderPaymentID
+	}
 	payment.Amount = model.Amount
 	payment.Currency = model.Currency
 	payment.IdempotencyKey = model.IdempotencyKey
+	payment.RequestFingerprint = model.RequestFingerprint
 	payment.CreatedAtUnixMs = model.CreatedAtUnixMs
 	payment.UpdatedAtUnixMs = model.UpdatedAtUnixMs
 	payment.SucceededAtMs = model.SucceededAtMs
+	payment.ReconciledAtUnixMs = model.ReconciledAtUnixMs
 	return &payment, nil
 }
 

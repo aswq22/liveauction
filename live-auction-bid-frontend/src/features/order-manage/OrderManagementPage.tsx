@@ -164,12 +164,53 @@ function OrderReviewCard({ order, disabled, onOpen }: { order: OrderSummary; dis
       <strong><b>订单状态：</b><StudioBadge tone={orderStatusTone(order.status)}>{orderStatusLabel(order.status)}</StudioBadge></strong>
       <div><StudioButton type="button" variant="ghost" size="sm" disabled={disabled} onClick={(event) => { event.stopPropagation(); open(); }}>成交详情</StudioButton></div>
     </div>
+    <PaymentFlow order={order} />
     <div className="historyCardMetrics orderReviewMetrics">
       <span><b>{amountLabel}：</b><strong className="orderAmountCell">{formatAmountText(order.amount, order.currency)}</strong></span>
       <span><b>买家：</b>{order.buyerNickname || order.buyerUserId}</span>
       <span><b>创建时间：</b>{formatDateTimeText(order.createdAtUnixMs)}</span>
     </div>
   </article>;
+}
+
+function PaymentFlow({ order }: { order: OrderSummary }) {
+  const paymentStatus = String(order.paymentStatus || '').toUpperCase();
+  const orderStatus = String(order.status || '').toUpperCase();
+  const paid = isOrderPaidStatus(order.status, order.paymentStatus);
+  const closed = ['FAILED', 'CLOSED'].includes(paymentStatus) || ['CANCELLED', 'EXPIRED', 'REFUNDED'].includes(orderStatus);
+  const processing = paymentStatus === 'PROCESSING';
+  const steps = [
+    { key: 'created', label: '已建单', active: true, tone: 'info' },
+    { key: 'paying', label: processing ? '处理中' : '待支付', active: !paid && !closed, tone: processing ? 'info' : 'warning' },
+    { key: 'done', label: paid ? '已入账' : closed ? '已关闭' : '待完成', active: paid || closed, tone: paid ? 'success' : closed ? 'danger' : 'neutral' },
+  ];
+  return <div className="orderPaymentFlow" aria-label="payment flow">
+    {steps.map((step) => <span key={step.key} className={step.active ? 'isActive' : ''}>
+      <i data-tone={step.tone} />{step.label}
+    </span>)}
+    <b title={order.paymentProviderPaymentId || order.paymentId || ''}>{order.paymentProviderPaymentId || order.paymentId || '未生成流水'}</b>
+  </div>;
+}
+
+function PaymentTracePanel({ order }: { order: OrderSummary }) {
+  const reconciledAt = Number(order.paymentReconciledAtUnixMs || 0);
+  const traceItems = [
+    { label: '支付状态', value: paymentStatusLabel(order.paymentStatus) },
+    { label: '支付单号', value: order.paymentId || '未生成' },
+    { label: '支付通道', value: order.paymentProvider || 'mock' },
+    { label: '通道流水', value: order.paymentProviderPaymentId || '未返回' },
+    { label: '幂等指纹', value: order.paymentRequestFingerprint || '待生成' },
+    { label: '对账时间', value: reconciledAt > 0 ? formatDateTimeText(reconciledAt) : '待对账' },
+  ];
+  return <section className="orderPaymentTracePanel" aria-label="payment trace">
+    <header><CircleDollarSign size={16} /><b>支付链路</b></header>
+    <div>
+      {traceItems.map((item) => <span key={item.label}>
+        <small>{item.label}</small>
+        <strong title={item.value}>{item.value}</strong>
+      </span>)}
+    </div>
+  </section>;
 }
 
 function orderAmountLabel(order: OrderSummary) {
@@ -226,6 +267,7 @@ function OrderDetailDrawer({ detail, loading, onClose }: { detail: LotResultRepl
           <span>支付单号：<b>{order?.paymentId || '未生成 / 不可见'}</b></span>
           <span>支付截止：<b>{formatDateTimeText(order?.expiresAtUnixMs)}</b></span>
         </div>
+        {order ? <PaymentTracePanel order={order} /> : null}
         <div className="orderDetailFooter">
           {order ? <StudioEmptyState compact tone="success" icon={<ReceiptText size={22} />} title="订单详情来自后端权限接口" description="后台不使用公开 WebSocket reason 中的订单或支付标识。" /> : <StudioErrorState compact icon={<AlertTriangle size={22} />} title="后端未返回订单详情" description="当前账号可能无权查看，或该成交尚未生成订单。" />}
         </div>

@@ -3,6 +3,8 @@ package data
 import (
 	"context"
 	"errors"
+	"log"
+	"os"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -27,6 +29,8 @@ type Config struct {
 	DBConnMaxIdleTime                         time.Duration
 	RedisPoolSize                             int
 	RedisMinIdleConns                         int
+	SeedRBACDefaults                          bool
+	SeedShopDefaults                          bool
 }
 
 // Store is the single production data path for the auction service.
@@ -38,9 +42,12 @@ type Config struct {
 type Store struct {
 	db                                        *gorm.DB
 	redis                                     *redis.Client
+	eventStreamer                             auction.EventPublisher
 	runtimeProjectionShards                   int
 	runtimeProjectionBackpressurePendingLimit int64
 	runtimeProjectionBackpressureLagMs        int64
+	seedRBACDefaults                          bool
+	seedShopDefaults                          bool
 }
 
 func NewStore(ctx context.Context, cfg Config) (*Store, error) {
@@ -52,7 +59,12 @@ func NewStore(ctx context.Context, cfg Config) (*Store, error) {
 	}
 
 	db, err := gorm.Open(mysql.Open(cfg.MySQLDSN), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+		Logger: logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{
+			SlowThreshold:             200 * time.Millisecond,
+			LogLevel:                  logger.Warn,
+			IgnoreRecordNotFoundError: true,
+			Colorful:                  true,
+		}),
 	})
 	if err != nil {
 		return nil, err
@@ -117,12 +129,22 @@ func NewStore(ctx context.Context, cfg Config) (*Store, error) {
 		runtimeProjectionShards: cfg.RuntimeProjectionShards,
 		runtimeProjectionBackpressurePendingLimit: cfg.RuntimeProjectionBackpressurePendingLimit,
 		runtimeProjectionBackpressureLagMs:        cfg.RuntimeProjectionBackpressureLag.Milliseconds(),
+		seedRBACDefaults:                          cfg.SeedRBACDefaults,
+		seedShopDefaults:                          cfg.SeedShopDefaults,
 	}
 	if err := store.migrate(ctx); err != nil {
 		_ = store.Close()
 		return nil, err
 	}
 	return store, nil
+}
+
+func (s *Store) SetEventStreamer(publisher auction.EventPublisher) *Store {
+	if s == nil {
+		return nil
+	}
+	s.eventStreamer = publisher
+	return s
 }
 
 func (s *Store) Ping(ctx context.Context) error {
@@ -182,13 +204,18 @@ func (s *Store) migrate(ctx context.Context) error {
 	); err != nil {
 		return err
 	}
-	if err := s.EnsureRBACDefaults(ctx); err != nil {
-		return err
+	if s.seedRBACDefaults {
+		if err := s.EnsureRBACDefaults(ctx); err != nil {
+			return err
+		}
 	}
 	if err := s.ensureVisualDefaults(ctx); err != nil {
 		return err
 	}
-	return s.EnsureShopSeeds(ctx)
+	if s.seedShopDefaults {
+		return s.EnsureShopSeeds(ctx)
+	}
+	return nil
 }
 
 func (s *Store) ensureVisualDefaults(ctx context.Context) error {

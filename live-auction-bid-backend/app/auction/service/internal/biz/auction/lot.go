@@ -236,6 +236,66 @@ func QueueLot(lot *v1.Lot, queuePosition int32) error {
 	return nil
 }
 
+func NewRelistLotFromFailed(id string, source *v1.Lot) (*v1.Lot, error) {
+	if source == nil {
+		return nil, fmt.Errorf("%w: source lot is required", apperr.ErrInvalidArgument)
+	}
+	if strings.TrimSpace(id) == "" {
+		return nil, fmt.Errorf("%w: new lot id is required", apperr.ErrInvalidArgument)
+	}
+	if source.Status != v1.LotStatus_LOT_STATUS_FAILED {
+		return nil, fmt.Errorf("%w: only failed lot can be relisted, current status: %s", apperr.ErrInvalidArgument, source.Status)
+	}
+	rule := cloneRule(source.GetRule())
+	if rule == nil {
+		rule = &v1.BidRule{}
+	}
+	currentPrice := cloneMoney(rule.GetStartPrice())
+	if currentPrice == nil {
+		currentPrice = &v1.Money{}
+	}
+	stock, err := normalizeStock(source.GetStock())
+	if err != nil {
+		return nil, err
+	}
+	lot := &v1.Lot{
+		Id:               strings.TrimSpace(id),
+		MainAccountId:    source.GetMainAccountId(),
+		RoomId:           source.GetRoomId(),
+		Title:            source.GetTitle(),
+		Description:      source.GetDescription(),
+		ImageUrl:         source.GetImageUrl(),
+		Status:           v1.LotStatus_LOT_STATUS_DRAFT,
+		QueueStatus:      v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE,
+		Rule:             rule,
+		CurrentPrice:     currentPrice,
+		FinalPrice:       &v1.Money{Currency: currentPrice.GetCurrency()},
+		Version:          1,
+		Stats:            &v1.LotStats{},
+		TrustCards:       cloneTrustCards(source.GetTrustCards()),
+		DuelState:        &v1.DuelState{},
+		PlaybookStage:    v1.PlaybookStage_PLAYBOOK_STAGE_WARM_UP,
+		GalleryImageUrls: cloneStringSlice(source.GetGalleryImageUrls()),
+		Category:         source.GetCategory(),
+		Tags:             cloneStringSlice(source.GetTags()),
+		EstimatePrice:    cloneMoney(source.GetEstimatePrice()),
+		Stock:            stock,
+		AfterSaleNotes:   source.GetAfterSaleNotes(),
+		DepositAmount:    cloneMoney(source.GetDepositAmount()),
+	}
+	normalizeTrustCards(lot)
+	if err := ValidateLotReady(lot.GetTitle(), lot.GetImageUrl(), lot.GetRule()); err != nil {
+		return nil, err
+	}
+	if err := validateLotMedia(lot); err != nil {
+		return nil, err
+	}
+	if err := validateOptionalMoney("depositAmount", lot.GetDepositAmount()); err != nil {
+		return nil, err
+	}
+	return lot, nil
+}
+
 func clearQueueState(lot *v1.Lot) {
 	lot.QueueStatus = v1.LotQueueStatus_LOT_QUEUE_STATUS_NONE
 	lot.QueuePosition = 0
@@ -313,6 +373,17 @@ func validateLotMedia(lot *v1.Lot) error {
 	if lot.GetStock() < 1 {
 		return fmt.Errorf("%w: stock must be >= 1", apperr.ErrInvalidArgument)
 	}
+	return nil
+}
+
+func consumeLotStock(lot *v1.Lot) error {
+	if lot == nil {
+		return fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
+	}
+	if lot.GetStock() <= 0 {
+		return fmt.Errorf("%w: lot stock is not enough", apperr.ErrInvalidArgument)
+	}
+	lot.Stock--
 	return nil
 }
 
@@ -419,6 +490,9 @@ func AcceptBid(lot *v1.Lot, bid v1.Bid, nowMs int64) error {
 			return apperr.ErrBidCurrencyMismatch
 		}
 		if bid.GetAmount().GetAmount() >= lot.GetRule().GetCapPrice().GetAmount() {
+			if err := consumeLotStock(lot); err != nil {
+				return err
+			}
 			lot.Status = v1.LotStatus_LOT_STATUS_SETTLED
 			clearQueueState(lot)
 			lot.SettledAtUnixMs = nowMs
@@ -548,6 +622,9 @@ func SettleLot(lot *v1.Lot, nowMs int64) error {
 	}
 	if lot.LeadingUserId == "" {
 		return fmt.Errorf("%w: lot has no accepted bid to settle", apperr.ErrInvalidArgument)
+	}
+	if err := consumeLotStock(lot); err != nil {
+		return err
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_SETTLED
 	clearQueueState(lot)

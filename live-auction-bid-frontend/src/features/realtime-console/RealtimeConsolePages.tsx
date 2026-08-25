@@ -11,6 +11,7 @@ import { roomSocketStatusLabel, useRoomSocket } from '../../shared/realtime/useR
 import { StudioBadge, StudioButton, StudioCard, StudioEmptyState, StudioMetricCard, StudioPageHeader, StudioTable, StudioTableSkeleton } from '../../pages/host-console/components/studio-ui';
 
 type LinkEvent = { seq: number; time: string; type: string; lotId?: string; detail: string };
+const SETTLE_BLOCKED_MESSAGE = '暂无有效出价，不能落锤成交。请等待买家出价，或使用异常取消处理本件拍品。';
 
 export function LiveControlPage({ roomId }: { roomId: string }) {
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
@@ -64,6 +65,7 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
 
   const nextLot = lots.find((item) => isQueueReadyLot(item) && item.id !== lot?.id) || null;
   const wsState = roomSocketStatusLabel(socket.status);
+  const settleReady = canSettleControlLot(lot, snapshot);
 
   const action = async (name: string, fn: () => Promise<unknown>) => {
     setWorking(name);
@@ -79,6 +81,15 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
     }
   };
 
+  const settleCurrentLot = () => {
+    if (!lot) return;
+    if (!settleReady) {
+      setError(SETTLE_BLOCKED_MESSAGE);
+      return;
+    }
+    void action('落锤成交', () => settleLot(lot.id));
+  };
+
   return <section className={`liveControlPage ${lot ? 'isLive' : 'isPrepared'}`}>
     <StudioCard padding="lg" className="controlTopBar">
       <StudioPageHeader eyebrow="Realtime control" title="直播间中控台" actions={<><a className="studioButton studioButton-secondary studioButton-md controlUtilityButton" href="/admin/auctions">返回队列</a><StudioButton type="button" variant="secondary" className="controlUtilityButton" icon={<RefreshCw size={15} />} loading={working === '同步'} onClick={() => void action('同步', syncRoom)}>立即同步</StudioButton></>} />
@@ -92,7 +103,7 @@ export function LiveControlPage({ roomId }: { roomId: string }) {
     </section>
     {!lot ? <PreparedStage nextLot={nextLot} onSync={() => void syncRoom()} /> : <div className="controlRoomGrid">
       <aside className="controlLeftRail hostBriefingRail"><RoomLivePreview lot={lot} snapshot={snapshot} wsState={wsState} /><TrustCardPanel lot={lot} working={working} onReveal={(cardId) => void action('展示讲解卡', () => revealTrustCard(lot.id, cardId))} /></aside>
-      <main className="controlCenterRail"><PriceCommandBoard lot={lot} snapshot={snapshot} /><ControlActionDeck lot={lot} working={working} onDuel={() => void action('进入决胜', () => startDuel(lot.id))} onSettle={() => void action('落锤成交', () => settleLot(lot.id))} onCancel={(reason) => void action('异常取消', () => cancelLot(lot.id, reason))} /></main>
+      <main className="controlCenterRail"><PriceCommandBoard lot={lot} snapshot={snapshot} /><ControlActionDeck lot={lot} working={working} settleReady={settleReady} onDuel={() => void action('进入决胜', () => startDuel(lot.id))} onSettle={settleCurrentLot} onCancel={(reason) => void action('异常取消', () => cancelLot(lot.id, reason))} /></main>
       <aside className="controlRightRail"><RealtimeBidFeedPanel bids={snapshot?.recentBids || []} /><LiveRankingBoard ranking={snapshot?.ranking || []} leadingUserId={lot.leadingUserId} /></aside>
     </div>}
     <NextLotQueue lot={nextLot} />
@@ -208,6 +219,12 @@ function nowText() {
   return new Date().toLocaleTimeString('zh-CN', { hour12: false });
 }
 
+function canSettleControlLot(lot: Lot | null, snapshot: RoomSnapshot | null) {
+  return canSettleLot(lot)
+    || Boolean(snapshot?.currentLot?.leadingUserId)
+    || Boolean(snapshot?.ranking?.[0]?.userId);
+}
+
 function PreparedStage({ nextLot, onSync }: { nextLot: Lot | null; onSync: () => void }) {
   return <section className="preparedControlStage"><StudioCard title="当前无 LIVE" subtitle="Ready"><StudioEmptyState icon={<Radio size={30} />} title="等待开拍" description={nextLot ? `下一件拍品：${nextLot.title}` : '队列中没有待开拍拍品。'} action={<><a className="studioButton studioButton-primary studioButton-md" href="/admin/auctions">查看本场队列</a><StudioButton type="button" variant="secondary" onClick={onSync}>同步房间状态</StudioButton></>} /></StudioCard></section>;
 }
@@ -226,12 +243,11 @@ function PriceCommandBoard({ lot, snapshot }: { lot: Lot; snapshot: RoomSnapshot
   return <section className="priceCommandBoard auctionCommandCenter"><div className="priceCommandEyebrow"><span>Command Area</span><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></div><div className="currentPriceFocus"><p>当前最高价</p><strong className="livePriceBig">{formatMoneyText(lot.currentPrice)}</strong><small>领先用户：{lot.leadingNickname || snapshot?.ranking?.[0]?.nickname || '暂无'}</small></div><span className="serverCountdown"><Clock3 size={22} />{formatAuctionLeftMs(getLotLeftMs(lot, snapshot?.serverTimeUnixMs), 'control')}</span><div className="priceCommandMetrics"><span>下一口价：<b>{formatMoneyText(nextPrice)}</b></span><span>参与人数：<b>{snapshot?.ranking?.length || 0}</b></span><span>出价次数：<b>{snapshot?.recentBids?.length || 0}</b></span><span>规则版本：<b>v{lot.version || 1}</b></span></div></section>;
 }
 
-function ControlActionDeck({ lot, working, onDuel, onSettle, onCancel }: { lot: Lot; working: string; onDuel: () => void; onSettle: () => void; onCancel: (reason: string) => void }) {
+function ControlActionDeck({ lot, working, settleReady, onDuel, onSettle, onCancel }: { lot: Lot; working: string; settleReady: boolean; onDuel: () => void; onSettle: () => void; onCancel: (reason: string) => void }) {
   const disabled = Boolean(working);
-  const settleReady = canSettleLot(lot);
   const [cancelReason, setCancelReason] = useState('');
   const trimmedReason = cancelReason.trim();
-  return <section className="controlActionDeck"><header><h3>控场操作</h3><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></header><div className="controlActionsGrid"><button type="button" className="controlActionButton controlActionButton-duel" disabled={disabled} onClick={onDuel}>进入决胜</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>推送提醒待接口</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>延时待接口</button></div><div className="dangerActionStrip"><button type="button" className="settleButton" disabled={disabled || !settleReady} title={settleReady ? '落锤成交' : '暂无有效出价，不能落锤成交'} onClick={onSettle}>{settleReady ? '落锤成交' : '等待出价'}</button><input value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} placeholder="异常取消原因" disabled={disabled} /><button type="button" className="cancelButton" disabled={disabled || !trimmedReason} onClick={() => onCancel(trimmedReason)}>异常取消</button></div></section>;
+  return <section className="controlActionDeck"><header><h3>控场操作</h3><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></header><div className="controlActionsGrid"><button type="button" className="controlActionButton controlActionButton-duel" disabled={disabled} onClick={onDuel}>进入决胜</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>推送提醒待接口</button><button type="button" className="controlActionButton controlActionButton-muted" disabled>延时待接口</button></div><div className="dangerActionStrip"><button type="button" className="settleButton" disabled={disabled} title={settleReady ? '落锤成交' : SETTLE_BLOCKED_MESSAGE} onClick={onSettle}>落锤成交</button><input value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} placeholder="异常取消原因" disabled={disabled} /><button type="button" className="cancelButton" disabled={disabled || !trimmedReason} onClick={() => onCancel(trimmedReason)}>异常取消</button></div></section>;
 }
 
 function RealtimeBidFeedPanel({ bids }: { bids: Bid[] }) {

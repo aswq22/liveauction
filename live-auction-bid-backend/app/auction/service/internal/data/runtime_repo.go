@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -832,7 +833,7 @@ func (s *Store) writeLotRuntime(ctx context.Context, lot *v1.Lot, bids []v1.Bid)
 		runtimeRecentKey(lot.Id),
 	}
 	pipe.Del(ctx, keys...)
-	pipe.HSet(ctx, runtimeStateKey(lot.Id), state)
+	pipe.HMSet(ctx, runtimeStateKey(lot.Id), redisHashPairs(state)...)
 	participants := make([]any, 0, stats.ParticipantCount)
 	seen := make(map[string]bool)
 	for _, bid := range bids {
@@ -879,6 +880,19 @@ func (s *Store) writeLotRuntime(ctx context.Context, lot *v1.Lot, bids []v1.Bid)
 	}
 	_, err := pipe.Exec(ctx)
 	return err
+}
+
+func redisHashPairs(values map[string]any) []any {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	pairs := make([]any, 0, len(keys)*2)
+	for _, key := range keys {
+		pairs = append(pairs, key, values[key])
+	}
+	return pairs
 }
 
 func (s *Store) loadRuntimeLot(ctx context.Context, base *v1.Lot) (*v1.Lot, error) {

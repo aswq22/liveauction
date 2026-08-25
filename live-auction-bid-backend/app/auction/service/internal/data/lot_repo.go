@@ -106,6 +106,11 @@ func (s *Store) Save(ctx context.Context, lot *v1.Lot, expectedVersion int64, ev
 		if err := releaseActiveLotIfTerminal(ctx, tx, lot); err != nil {
 			return err
 		}
+		if lot.GetStatus() == v1.LotStatus_LOT_STATUS_CANCELLED || lot.GetStatus() == v1.LotStatus_LOT_STATUS_FAILED {
+			if err := releaseHeldDepositHoldsForLot(ctx, tx, lot.GetId(), time.Now().UnixMilli()); err != nil {
+				return err
+			}
+		}
 		lot.UpdatedAtUnixMs = time.Now().UnixMilli()
 		return createEventModels(ctx, tx, events)
 	}); err != nil {
@@ -238,6 +243,9 @@ func (s *Store) ListLots(ctx context.Context, query auction.LotQuery) (auction.L
 	if err := s.attachStats(ctx, lots); err != nil {
 		return auction.LotList{}, err
 	}
+	if err := s.attachRelistMarkers(ctx, lots); err != nil {
+		return auction.LotList{}, err
+	}
 	return auction.LotList{Lots: lots, Total: total, Page: query.Page, PageSize: query.PageSize}, nil
 }
 
@@ -274,6 +282,40 @@ func (s *Store) attachStats(ctx context.Context, lots []*v1.Lot) error {
 		} else {
 			lot.Stats = &v1.LotStats{}
 		}
+	}
+	return nil
+}
+
+func (s *Store) attachRelistMarkers(ctx context.Context, lots []*v1.Lot) error {
+	if len(lots) == 0 {
+		return nil
+	}
+	reasonToLot := make(map[string]*v1.Lot)
+	reasons := make([]string, 0, len(lots))
+	for _, lot := range lots {
+		if lot == nil || lot.GetStatus() != v1.LotStatus_LOT_STATUS_FAILED || lotRelistMarker(lot.GetCancelReason()) != "" {
+			continue
+		}
+		reason := relistEventReason(lot.GetId())
+		reasonToLot[reason] = lot
+		reasons = append(reasons, reason)
+	}
+	if len(reasons) == 0 {
+		return nil
+	}
+	var events []AuctionEventModel
+	if err := s.db.WithContext(ctx).
+		Where("type = ? AND reason IN ?", int32(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_QUEUED), reasons).
+		Order("occurred_at_unix_ms ASC").
+		Find(&events).Error; err != nil {
+		return err
+	}
+	for _, event := range events {
+		lot := reasonToLot[event.Reason]
+		if lot == nil || lotRelistMarker(lot.GetCancelReason()) != "" {
+			continue
+		}
+		lot.CancelReason = appendRelistMarker(lot.GetCancelReason(), event.LotID)
 	}
 	return nil
 }
@@ -518,7 +560,7 @@ func modelToLot(model *AuctionLotModel) (*v1.Lot, error) {
 	lot.Rule.AntiSnipeWindowSeconds = model.AntiSnipeWindowSeconds
 	lot.Rule.AntiSnipeExtendSeconds = model.AntiSnipeExtendSeconds
 	lot.Rule.MaxExtendCount = model.MaxExtendCount
-	if lot.Stock < 1 {
+	if lot.GetStock() <= 0 && v1.LotStatus(model.Status) != v1.LotStatus_LOT_STATUS_SETTLED {
 		lot.Stock = 1
 	}
 	lot.QueueStatus = normalizeQueueStatus(v1.LotQueueStatus(model.QueueStatus))

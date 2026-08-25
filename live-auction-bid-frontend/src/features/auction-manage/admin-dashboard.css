@@ -924,9 +924,11 @@
 
 .merchantRiskPanelBody {
   display: grid;
-  grid-template-columns: 190px minmax(180px, .65fr) minmax(240px, 1fr);
+  container-type: inline-size;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: 16px;
   align-items: start;
+  min-width: 0;
 }
 
 .merchantRiskDonut {
@@ -935,8 +937,10 @@
   display: grid;
   place-items: center;
   align-content: center;
-  width: 184px;
-  height: 184px;
+  align-self: center;
+  justify-self: center;
+  width: clamp(148px, 78%, 184px);
+  aspect-ratio: 1;
   border-radius: 50%;
   overflow: hidden;
   isolation: isolate;
@@ -1012,6 +1016,7 @@
 .merchantCountdownList {
   display: grid;
   gap: 9px;
+  min-width: 0;
 }
 
 .merchantRiskLegend div {
@@ -1050,6 +1055,25 @@
   text-decoration: none;
 }
 
+.merchantCountdownList .studioState {
+  max-width: 100%;
+  min-width: 0;
+  padding-inline: 8px;
+}
+
+.merchantCountdownList .studioState h3,
+.merchantCountdownList .studioState p {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+@container (max-width: 560px) {
+  .merchantCountdownList {
+    grid-column: 1 / -1;
+  }
+}
+
 .merchantCountdownList a.expired {
   background: var(--merchant-error-bg);
 }
@@ -1078,6 +1102,7 @@
   font-size: 14px;
   line-height: 22px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .merchantLotTable {

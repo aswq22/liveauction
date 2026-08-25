@@ -18,9 +18,9 @@ P0 硬点：0 元起拍、固定加价、封顶价自动成交、10-30 秒自动
 
 - 核心业务：创建拍品、开拍、出价、排行榜、信任卡揭示、Duel、落锤、快照、WebSocket 事件广播。
 - 数据主路径：GORM + MySQL 保存拍品、出价和持久幂等键；Redis 缓存出价幂等查询，缓存失败后以 MySQL 记录为准。
-- 本地基础设施：Docker Compose 启动 backend / MySQL / Redis / Consul。
+- 本地基础设施：Docker Compose 启动 backend / MySQL / Redis / RabbitMQ / Consul。
 - 服务注册：启动时向 Consul 注册 `auction-backend`，使用 `/readyz` 作为 Consul HTTP health check。
-- 事件流：伴随拍品/出价状态变更的领域事件与业务状态写入同一个 MySQL 事务；事务提交后写 Redis Stream，Stream 写入确认/错误回写 MySQL，后台 outbox worker 会重推未确认事件。
+- 事件流：伴随拍品/出价/支付状态变更的领域事件与业务状态写入同一个 MySQL 事务；事务提交后投递 RabbitMQ，投递确认/错误回写 MySQL，后台 outbox worker 会重推未确认事件，WebSocket 服务作为 RabbitMQ 消费者推送直播间前端。
 - 用户系统：自建 username/password 账号，用户 ID 使用雪花字符串；JWT access token + refresh session 支持注册、登录、刷新、登出、me 和 RBAC 团队账号管理。
 - 鉴权权限：公开读接口可匿名访问；出价走 `bid.place`，后台操作按 `lot.*`、`auction.control`、`order.manage`、`team.user.*` 等权限码判断，不再使用旧角色枚举做运行时鉴权。
 - 健康检查：`/healthz` 存活检查，`/readyz` 检查 MySQL + Redis、事件 outbox worker 最近修复状态、Consul 注册可观测状态。
@@ -202,6 +202,6 @@ LIVE_AUCTION_E2E_BASE_URL=http://127.0.0.1:18080 go test ./test/e2e -count=1 -v
 
 - **统一返回模式（Result Envelope）**：service 层把可预期业务错误收敛到 `ReplyResult`，对前端形成单一解析入口；transport error 只留给不可包装的系统/链路故障。
 - **Repository + Unit of Work**：data 层持有 GORM/Redis/事务边界，lot/bid/event 在必要场景进入同一个 MySQL transaction，biz 层只依赖 repo 接口。
-- **Transactional Outbox**：业务状态与事件先在 MySQL 同事务落库，再由 outbox worker 推 Redis Stream，接受 at-least-once，消费侧按 event id 幂等。
+- **Transactional Outbox**：业务状态与事件先在 MySQL 同事务落库，再由 outbox worker 推 RabbitMQ，接受 at-least-once，消费侧按 event id 幂等。
 - **Registry + Health Check**：server 层负责 Consul 注册与 `/readyz` 聚合观测，不让治理基础设施进入 biz。
 - **测试隔离**：跨层业务测试保留在 `app/auction/service/test`；HTTP 黑盒契约测试放在 `test/e2e`；同包内部测试只在确需覆盖私有转换、worker、repo、hub 等内部行为时保留。

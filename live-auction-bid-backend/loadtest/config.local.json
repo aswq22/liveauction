@@ -1,0 +1,27 @@
+{
+  "baseUrl": "http://127.0.0.1:18081",
+  "mysql": {
+    "host": "127.0.0.1",
+    "port": 23306,
+    "database": "live_auction_loadtest",
+    "user": "auction",
+    "password": "auction_dev"
+  },
+  "rabbitmq": {
+    "url": "amqp://auction_loadtest:auction_mq_loadtest@127.0.0.1:25672/",
+    "exchange": "auction.loadtest.events",
+    "queue": "auction.loadtest.realtime.websocket"
+  },
+  "profiles": {
+    "baseline": {
+      "buyers": 100,
+      "vus": 100,
+      "duration": "1m"
+    },
+    "high": {
+      "buyers": 1000,
+      "vus": 500,
+      "duration": "5m"
+    }
+  }
+}

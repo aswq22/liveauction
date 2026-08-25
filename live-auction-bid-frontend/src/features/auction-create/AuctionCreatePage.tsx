@@ -31,12 +31,12 @@ type FormState = {
   category: string;
   tags: string;
   estimatePrice: number | '';
-  stock: number;
   afterSaleNotes: string;
   startPrice: number;
   minIncrement: number;
   capPrice: number | '';
   depositAmount: number;
+  stock: number;
   durationSeconds: number;
   antiSnipeWindowSeconds: number;
   antiSnipeExtendSeconds: number;
@@ -88,12 +88,12 @@ const initialForm: FormState = {
   category: '',
   tags: '',
   estimatePrice: '',
-  stock: 1,
   afterSaleNotes: '',
   startPrice: 0,
   minIncrement: 50,
   capPrice: '',
   depositAmount: 0,
+  stock: 1,
   durationSeconds: 300,
   antiSnipeWindowSeconds: 10,
   antiSnipeExtendSeconds: 15,
@@ -334,7 +334,6 @@ export function AuctionCreatePage({ roomId, roomName = roomId }: AuctionCreatePa
                 </AuctionField>
                 <AuctionField label="标签" help="用逗号分隔。" className="fieldTags"><input value={form.tags} onChange={(e) => update({ tags: e.target.value })} placeholder="保真, 稀缺, 福利场" /></AuctionField>
                 <AuctionField label="参考估价（元）" className="fieldEstimate"><input type="number" value={form.estimatePrice} min={0} placeholder="可选" onChange={(e) => update({ estimatePrice: e.target.value === '' ? '' : Number(e.target.value) })} /></AuctionField>
-                <AuctionField label="库存" error={issueText(issues, '库存')} className="fieldStock"><input type="number" value={form.stock} min={1} onChange={(e) => update({ stock: Number(e.target.value) })} /></AuctionField>
                 <AuctionField label="拍品介绍" error={issueText(issues, '介绍')} className="fieldDescription"><textarea value={form.description} onChange={(e) => update({ description: e.target.value })} rows={5} placeholder="描述材质、成色、亮点和竞拍价值" /></AuctionField>
                 <AuctionField label="售后说明" className="fieldService"><textarea value={form.afterSaleNotes} onChange={(e) => update({ afterSaleNotes: e.target.value })} rows={3} placeholder="成交后确认、发货、保价、客服承诺等" /></AuctionField>
               </div>
@@ -348,6 +347,7 @@ export function AuctionCreatePage({ roomId, roomName = roomId }: AuctionCreatePa
             <StudioField label="加价幅度（元）" error={issueText(issues, '加价')}><input type="number" value={form.minIncrement} min={1} onChange={(e) => update({ minIncrement: Number(e.target.value) })} /></StudioField>
             <StudioField label="封顶价（元）" error={issueText(issues, '封顶')}><input type="number" value={form.capPrice} placeholder="可选" onChange={(e) => update({ capPrice: e.target.value === '' ? '' : Number(e.target.value) })} /></StudioField>
             <StudioField label="保证金（元）" error={issueText(issues, '保证金')}><input type="number" value={form.depositAmount} min={0} onChange={(e) => update({ depositAmount: Number(e.target.value) })} /></StudioField>
+            <StudioField label="库存（件）" error={issueText(issues, '库存')}><input type="number" value={form.stock} min={1} onChange={(e) => update({ stock: Number(e.target.value) })} /></StudioField>
             <StudioField label="竞拍时长（秒）" error={issueText(issues, '时长')}><input type="number" value={form.durationSeconds} min={60} onChange={(e) => update({ durationSeconds: Number(e.target.value) })} /></StudioField>
             <StudioField label="延时窗口（秒）" error={issueText(issues, '延时窗口')}><input type="number" value={form.antiSnipeWindowSeconds} min={1} onChange={(e) => update({ antiSnipeWindowSeconds: Number(e.target.value) })} /></StudioField>
             <StudioField label="每次延长（秒）" error={issueText(issues, '每次延长')}><input type="number" value={form.antiSnipeExtendSeconds} min={10} max={30} onChange={(e) => update({ antiSnipeExtendSeconds: Number(e.target.value) })} /></StudioField>
@@ -381,6 +381,7 @@ export function AuctionCreatePage({ roomId, roomName = roomId }: AuctionCreatePa
               <div><span>直播间</span><b>{roomName}</b></div>
               <div><span>拍品</span><b>{form.title || '未填写'}</b></div>
               <div><span>分类</span><b>{form.category.trim() || '未选择'}</b></div>
+              <div><span>库存</span><b>{form.stock} 件</b></div>
               <div><span>图片素材</span><b>{Number(Boolean(form.imageUrl)) + form.gallery.length} 张</b></div>
               <div><span>讲解卡</span><b>{trustCards.length} 张</b></div>
             </div>
@@ -419,7 +420,7 @@ export function AuctionCreatePage({ roomId, roomName = roomId }: AuctionCreatePa
             </section>
           </div>
         </div>
-        {activeStep === 'rules' || activeStep === 'review' ? <StudioCard title="规则摘要" subtitle="Summary" padding="md"><div className="ruleSnapshotGrid"><div><span>起拍价</span><b>{formatMoneyText(auctionMoney(form.startPrice))}</b></div><div><span>加价幅度</span><b>{formatMoneyText(auctionMoney(form.minIncrement))}</b></div><div><span>封顶价</span><b>{form.capPrice === '' ? '未设置' : formatMoneyText(auctionMoney(form.capPrice))}</b></div><div><span>保证金</span><b>{formatMoneyText(auctionMoney(form.depositAmount))}</b></div><div><span>库存</span><b>{form.stock}</b></div><div><span>最后出价延时</span><b>{form.antiSnipeWindowSeconds}s / +{form.antiSnipeExtendSeconds}s</b></div></div></StudioCard> : null}
+        {activeStep === 'rules' || activeStep === 'review' ? <StudioCard title="规则摘要" subtitle="Summary" padding="md"><div className="ruleSnapshotGrid"><div><span>起拍价</span><b>{formatMoneyText(auctionMoney(form.startPrice))}</b></div><div><span>加价幅度</span><b>{formatMoneyText(auctionMoney(form.minIncrement))}</b></div><div><span>封顶价</span><b>{form.capPrice === '' ? '未设置' : formatMoneyText(auctionMoney(form.capPrice))}</b></div><div><span>保证金</span><b>{formatMoneyText(auctionMoney(form.depositAmount))}</b></div><div><span>最后出价延时</span><b>{form.antiSnipeWindowSeconds}s / +{form.antiSnipeExtendSeconds}s</b></div></div></StudioCard> : null}
       </aside>
     </div>
   </section>;
@@ -475,9 +476,9 @@ function toRequest(form: FormState, roomId: string): CreateLotRequest {
     galleryImageUrls: form.gallery.map((image) => image.imageUrl),
     category: form.category.trim(),
     tags: parseTags(form.tags),
-    stock: form.stock,
     afterSaleNotes: form.afterSaleNotes.trim(),
     depositAmount: auctionMoney(form.depositAmount),
+    stock: form.stock,
   };
   const estimatePrice = optionalMoney(form.estimatePrice);
   if (estimatePrice) request.estimatePrice = estimatePrice;
@@ -499,9 +500,9 @@ function validate(form: FormState): FormIssue[] {
     if (imageURL && !isHTTPImageURL(imageURL)) issues.push({ level: 'error', step: 'briefing', text: `${card.label}图片不是稳定 URL` });
   }
   if (!form.description.trim()) issues.push({ level: 'error', step: 'product', text: '拍品介绍必填' });
-  if (form.stock < 1) issues.push({ level: 'error', step: 'product', text: '库存必须大于等于 1' });
   if (form.minIncrement <= 0) issues.push({ level: 'error', step: 'rules', text: '加价幅度必须大于 0' });
   if (form.depositAmount < 0) issues.push({ level: 'error', step: 'rules', text: '保证金不能小于 0' });
+  if (!Number.isFinite(form.stock) || form.stock < 1) issues.push({ level: 'error', step: 'rules', text: '库存必须大于等于 1' });
   if (form.durationSeconds < 60) issues.push({ level: 'error', step: 'rules', text: '竞拍时长必须大于等于 60 秒' });
   if (form.antiSnipeWindowSeconds <= 0) issues.push({ level: 'error', step: 'rules', text: '延时窗口必须大于 0 秒' });
   if (form.antiSnipeExtendSeconds < 10 || form.antiSnipeExtendSeconds > 30) issues.push({ level: 'error', step: 'rules', text: '每次延长必须在 10-30 秒之间' });

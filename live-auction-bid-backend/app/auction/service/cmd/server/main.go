@@ -31,7 +31,10 @@ func main() {
 	}
 	mysqlDSN := getenv("AUCTION_MYSQL_DSN", "auction:auction_dev@tcp(127.0.0.1:13306)/live_auction?parseTime=true&charset=utf8mb4&loc=Local")
 	redisAddr := getenv("AUCTION_REDIS_ADDR", "127.0.0.1:16379")
-	redisPassword := getenv("AUCTION_REDIS_PASSWORD", "auction_redis")
+	redisPassword := getenvAllowEmpty("AUCTION_REDIS_PASSWORD", "auction_redis")
+	if redisPassword == "__NO_PASSWORD__" {
+		redisPassword = ""
+	}
 
 	store, err := data.NewStore(context.Background(), data.Config{
 		MySQLDSN:                mysqlDSN,
@@ -46,6 +49,8 @@ func main() {
 		DBConnMaxIdleTime:                         getenvDuration("AUCTION_DB_CONN_MAX_IDLE_TIME", 2*time.Minute),
 		RedisPoolSize:                             getenvInt("AUCTION_REDIS_POOL_SIZE", 0),
 		RedisMinIdleConns:                         getenvInt("AUCTION_REDIS_MIN_IDLE_CONNS", 0),
+		SeedRBACDefaults:                          getenvBool("AUCTION_SEED_RBAC_DEFAULTS", true),
+		SeedShopDefaults:                          getenvBool("AUCTION_SEED_SHOP_DEFAULTS", true),
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -66,7 +71,6 @@ func main() {
 	leaseRenewInterval := getenvDuration("AUCTION_WORKER_LEASE_RENEW_INTERVAL", 5*time.Second)
 	outboxWorker := data.NewEventOutboxWorker(store, 10*time.Second, 100)
 	outboxWorker.BindLease(leaseProvider, "auction:lease:event-outbox-worker", instanceID, leaseTTL, leaseRenewInterval)
-	outboxWorker.Start(ctx)
 
 	authManager, err := auth.NewManager(auth.Config{
 		Secret:     os.Getenv("AUCTION_JWT_SECRET"),
@@ -97,6 +101,8 @@ func main() {
 	hub.BindAuthManager(authManager)
 	eventPublisher, closeRealtimeBus := newRealtimePublisherFromEnv(ctx, hub, instanceID, redisAddr, redisPassword)
 	defer closeRealtimeBus()
+	store.SetEventStreamer(eventPublisher)
+	outboxWorker.Start(ctx)
 	paymentProvider, err := auction.NewPaymentProviderFromName(os.Getenv("AUCTION_PAYMENT_PROVIDER"))
 	if err != nil {
 		log.Fatal(err)
@@ -105,14 +111,17 @@ func main() {
 		SetPaymentProvider(paymentProvider).
 		SetSyncRuntimeProjection(getenvBool("AUCTION_BID_SYNC_PROJECTION", false)).
 		SetBidDBGuardMode(getenv("AUCTION_BID_DB_GUARD_MODE", "runtime-first"))
-	runtimeProjectionWorker := data.NewRuntimeProjectionWorker(
-		store,
-		eventPublisher,
-		getenvDuration("AUCTION_RUNTIME_PROJECTION_INTERVAL", 2*time.Second),
-		getenvInt("AUCTION_RUNTIME_PROJECTION_BATCH_LIMIT", 100),
-	)
-	runtimeProjectionWorker.BindLease(leaseProvider, instanceID, leaseTTL, leaseRenewInterval)
-	runtimeProjectionWorker.Start(ctx)
+	var runtimeProjectionWorker *data.RuntimeProjectionWorker
+	if getenvBool("AUCTION_RUNTIME_PROJECTION_WORKER_ENABLED", true) {
+		runtimeProjectionWorker = data.NewRuntimeProjectionWorker(
+			store,
+			eventPublisher,
+			getenvDuration("AUCTION_RUNTIME_PROJECTION_INTERVAL", 2*time.Second),
+			getenvInt("AUCTION_RUNTIME_PROJECTION_BATCH_LIMIT", 100),
+		)
+		runtimeProjectionWorker.BindLease(leaseProvider, instanceID, leaseTTL, leaseRenewInterval)
+		runtimeProjectionWorker.Start(ctx)
+	}
 	hub.BindRoomAccessValidator(auctionUsecase)
 	auctionCloseWorker := auction.NewAuctionCloseWorker(auctionUsecase, getenvDuration("AUCTION_CLOSE_WORKER_INTERVAL", 2*time.Second), 100)
 	auctionCloseWorker.BindLease(leaseProvider, "auction:lease:auction-close-worker", instanceID, leaseTTL, leaseRenewInterval)
@@ -145,14 +154,16 @@ func main() {
 	}()
 
 	readiness := server.Readiness{
-		Store:             store,
-		Outbox:            outboxWorker,
-		AuctionClose:      auctionCloseWorker,
-		RuntimeProjection: runtimeProjectionWorker,
-		ProjectionMetrics: runtimeProjectionWorker,
-		WorkerStatuses:    []auction.WorkerStatusProvider{outboxWorker, auctionCloseWorker, runtimeProjectionWorker},
-		Cluster:           clusterStatus,
-		Consul:            consulRegistration,
+		Store:          store,
+		Outbox:         outboxWorker,
+		AuctionClose:   auctionCloseWorker,
+		WorkerStatuses: workerStatusProviders(outboxWorker, auctionCloseWorker, runtimeProjectionWorker),
+		Cluster:        clusterStatus,
+		Consul:         consulRegistration,
+	}
+	if runtimeProjectionWorker != nil {
+		readiness.RuntimeProjection = runtimeProjectionWorker
+		readiness.ProjectionMetrics = runtimeProjectionWorker
 	}
 	httpServer := server.NewHTTPServer(addr, auctionService, userService, shopService, orderService, hub, readiness, authManager, authManager.Middleware(), imageStorage, store)
 
@@ -225,6 +236,34 @@ func newRealtimePublisherFromEnv(ctx context.Context, hub *realtime.Hub, instanc
 			log.Fatalf("start nats realtime bus failed: %v", err)
 		}
 		log.Printf("nats realtime bus enabled: url=%s subject=%s queue=%s origin=%s", getenv("AUCTION_REALTIME_BUS_NATS_URL", "nats://127.0.0.1:4222"), getenv("AUCTION_REALTIME_BUS_NATS_SUBJECT", "auction.realtime.events"), getenv("AUCTION_REALTIME_BUS_NATS_QUEUE", ""), instanceID)
+		return realtime.NewPublisher(hub, bus), func() {
+			_ = bus.Close()
+		}
+	case "rabbitmq", "rabbit", "amqp":
+		bus, err := realtime.NewRabbitMQBus(realtime.RabbitMQBusConfig{
+			URL:        getenv("AUCTION_REALTIME_BUS_RABBITMQ_URL", "amqp://guest:guest@127.0.0.1:5672/"),
+			Exchange:   getenv("AUCTION_REALTIME_BUS_RABBITMQ_EXCHANGE", "auction.events"),
+			RoutingKey: getenv("AUCTION_REALTIME_BUS_RABBITMQ_ROUTING_KEY", "auction.realtime.event"),
+			Queue:      getenv("AUCTION_REALTIME_BUS_RABBITMQ_QUEUE", "auction.realtime.websocket"),
+			Consumer:   getenv("AUCTION_REALTIME_BUS_RABBITMQ_CONSUMER", instanceID),
+			Origin:     instanceID,
+			Prefetch:   getenvInt("AUCTION_REALTIME_BUS_RABBITMQ_PREFETCH", 100),
+		})
+		if err != nil {
+			log.Fatalf("create rabbitmq realtime bus failed: %v", err)
+		}
+		if err := bus.Start(ctx, hub); err != nil {
+			_ = bus.Close()
+			log.Fatalf("start rabbitmq realtime bus failed: %v", err)
+		}
+		log.Printf("rabbitmq realtime bus enabled: url=%s exchange=%s routing_key=%s queue=%s consumer=%s origin=%s",
+			getenv("AUCTION_REALTIME_BUS_RABBITMQ_URL", "amqp://guest:guest@127.0.0.1:5672/"),
+			getenv("AUCTION_REALTIME_BUS_RABBITMQ_EXCHANGE", "auction.events"),
+			getenv("AUCTION_REALTIME_BUS_RABBITMQ_ROUTING_KEY", "auction.realtime.event"),
+			getenv("AUCTION_REALTIME_BUS_RABBITMQ_QUEUE", "auction.realtime.websocket"),
+			getenv("AUCTION_REALTIME_BUS_RABBITMQ_CONSUMER", instanceID),
+			instanceID,
+		)
 		return realtime.NewPublisher(hub, bus), func() {
 			_ = bus.Close()
 		}
@@ -330,9 +369,27 @@ func defaultInstanceID() string {
 	return fmt.Sprintf("%s-%d", hostname, os.Getpid())
 }
 
+func workerStatusProviders(providers ...auction.WorkerStatusProvider) []auction.WorkerStatusProvider {
+	out := make([]auction.WorkerStatusProvider, 0, len(providers))
+	for _, provider := range providers {
+		if provider != nil {
+			out = append(out, provider)
+		}
+	}
+	return out
+}
+
 func getenv(key, fallback string) string {
 	value := os.Getenv(key)
 	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func getenvAllowEmpty(key, fallback string) string {
+	value, ok := os.LookupEnv(key)
+	if !ok {
 		return fallback
 	}
 	return value
@@ -378,7 +435,7 @@ func bootstrapMainAccount(ctx context.Context, users *userbiz.Usecase) error {
 func newImageStorageFromEnv() (storage.StorageProvider, error) {
 	provider := strings.TrimSpace(os.Getenv("AUCTION_STORAGE_PROVIDER"))
 	if provider == "" {
-		provider = "tos"
+		provider = "local"
 	}
 	switch provider {
 	case "local":

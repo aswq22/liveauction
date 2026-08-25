@@ -937,6 +937,11 @@ export function LiveRoomView({
   const roomSwipeLocked = Boolean(activeSheet || auctionPanel.open || resultLot || payOrder || depositPrompt || detailVisible);
 
   useEffect(() => {
+    const roomLiveSource = room.snapshot?.liveSourceUrl?.trim();
+    if (roomLiveSource && roomLiveSource !== liveSource) setLiveSource(roomLiveSource);
+  }, [liveSource, room.snapshot?.liveSourceUrl]);
+
+  useEffect(() => {
     if (!resultLot) return;
     setActiveSheet(null);
     setClearScreen(false);

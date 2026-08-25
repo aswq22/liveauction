@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlertTriangle, BadgeCheck, ChevronLeft, ChevronRight, Clock3, FileClock, Image as ImageIcon, Package, RefreshCw, Search, ShieldAlert, Trophy, X, XCircle } from 'lucide-react';
-import { listAdminLots, type AdminLotsQuery } from '../auction/api/auctionApi';
+import { listAdminLots, relistLot, type AdminLotsQuery } from '../auction/api/auctionApi';
 import { HISTORY_LOT_STATUS_FILTERS, isSettlementLot, lotStatusLabel, lotStatusTone, settlementOutcomeDisplay } from '../../entities/auction/model/auctionStatus';
 import { getLotResult } from '../order/api/orderApi';
 import type { OrderSummary } from '../../entities/order/model/orderTypes';
@@ -19,6 +19,7 @@ export function AuctionHistoryPage({ roomId }: { roomId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedLot, setSelectedLot] = useState<Lot | null>(null);
+  const [relistingLotId, setRelistingLotId] = useState('');
   const { toasts, showToast } = useStudioToast();
   const totalPages = Math.max(1, Math.ceil(total / (query.pageSize || DEFAULT_PAGE_SIZE)));
   const currentPage = query.page || 1;
@@ -47,6 +48,29 @@ export function AuctionHistoryPage({ roomId }: { roomId: string }) {
 
   const updateQuery = (patch: Partial<AdminLotsQuery>) => {
     setQuery((current) => ({ ...current, ...patch, view: 'history', page: patch.page ?? 1 }));
+  };
+
+  const relistFailedLot = async (lot: Lot) => {
+    if (!canRelistLot(lot)) return;
+    setRelistingLotId(lot.id);
+    setError('');
+    try {
+      const relisted = await relistLot(lot.id);
+      showToast({
+        id: `auction-history-relist-${lot.id}`,
+        tone: 'success',
+        title: '已重新上架',
+        description: `新拍品已进入队列 #${relisted.queuePosition ?? relisted.lot.queuePosition ?? 0}`,
+      });
+      setSelectedLot(null);
+      await syncLots(query);
+    } catch (e) {
+      const message = resultMessage(e);
+      setError(message);
+      showToast({ id: `auction-history-relist-failed-${lot.id}`, tone: 'danger', title: '重新上架失败', description: message });
+    } finally {
+      setRelistingLotId('');
+    }
   };
 
   useEffect(() => { void syncLots({ ...query, roomId, view: 'history' }); }, [roomId]);
@@ -92,10 +116,10 @@ export function AuctionHistoryPage({ roomId }: { roomId: string }) {
         </div>
       </div>
       {lots.length ? <section className="auctionHistoryList" aria-label="拍品历史列表">
-        {lots.map((lot) => <HistoryLotCard key={lot.id} lot={lot} order={ordersByLotId[lot.id]} onOpen={setSelectedLot} />)}
+        {lots.map((lot) => <HistoryLotCard key={lot.id} lot={lot} order={ordersByLotId[lot.id]} relisting={relistingLotId === lot.id} onOpen={setSelectedLot} onRelist={relistFailedLot} />)}
       </section> : <StudioEmptyState icon={<Package size={34} />} title="暂无历史记录" description="当前筛选条件下没有已落锤、已取消或异常拍品。" action={<a className="studioButton studioButton-secondary studioButton-md" href="/admin/auctions">返回本场队列</a>} compact />}
     </section>}
-    {selectedLot ? <HistoryLotDetailDrawer lot={selectedLot} order={ordersByLotId[selectedLot.id]} onClose={() => setSelectedLot(null)} /> : null}
+    {selectedLot ? <HistoryLotDetailDrawer lot={selectedLot} order={ordersByLotId[selectedLot.id]} relisting={relistingLotId === selectedLot.id} onRelist={relistFailedLot} onClose={() => setSelectedLot(null)} /> : null}
   </section>;
 }
 
@@ -154,7 +178,16 @@ function historyPriceLabel(lot: Lot, order?: OrderSummary | null) {
   return settlementOutcomeDisplay(lot, order).priceLabel;
 }
 
-function HistoryLotCard({ lot, order, onOpen }: { lot: Lot; order?: OrderSummary | null; onOpen: (lot: Lot) => void }) {
+function canRelistLot(lot: Lot) {
+  return lot.status === 'LOT_STATUS_FAILED' && !lot.winnerUserId && !relistedLotId(lot);
+}
+
+function relistedLotId(lot: Lot) {
+  const marker = '已重新上架为 ';
+  return (lot.cancelReason || '').split('；').map((item) => item.trim()).find((item) => item.startsWith(marker))?.slice(marker.length).trim() || '';
+}
+
+function HistoryLotCard({ lot, order, relisting, onOpen, onRelist }: { lot: Lot; order?: OrderSummary | null; relisting: boolean; onOpen: (lot: Lot) => void; onRelist: (lot: Lot) => void }) {
   const price = resultPrice(lot);
   const insights = historyInsightItems(lot).slice(0, 2);
   const open = () => onOpen(lot);
@@ -191,11 +224,21 @@ function HistoryLotCard({ lot, order, onOpen }: { lot: Lot; order?: OrderSummary
       <strong>{historyReasonText(lot)}</strong>
       <small>{formatDeltaText(lot)} · {premiumRateText(lot)}</small>
       <div>{insights.map((item) => <em key={item.title} className={`historyInsightPill ${item.tone}`}>{item.title}</em>)}</div>
+      {relistedLotId(lot) ? <em className="historyInsightPill info">已重新上架</em> : null}
+      {canRelistLot(lot) ? <button
+        type="button"
+        className="historyCardCta"
+        disabled={relisting}
+        onClick={(event) => {
+          event.stopPropagation();
+          onRelist(lot);
+        }}
+      >{relisting ? '上架中' : '再次上架'}</button> : null}
     </div>
   </article>;
 }
 
-function HistoryLotDetailDrawer({ lot, order, onClose }: { lot: Lot; order?: OrderSummary | null; onClose: () => void }) {
+function HistoryLotDetailDrawer({ lot, order, relisting, onRelist, onClose }: { lot: Lot; order?: OrderSummary | null; relisting: boolean; onRelist: (lot: Lot) => void; onClose: () => void }) {
   const insights = historyInsightItems(lot);
   const gallery = Array.from(new Set(lot.galleryImageUrls || [])).filter((imageUrl) => imageUrl && imageUrl !== lot.imageUrl);
   const tags = lot.tags || [];
@@ -211,6 +254,7 @@ function HistoryLotDetailDrawer({ lot, order, onClose }: { lot: Lot; order?: Ord
   return <div className="historyDetailOverlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <aside className="historyDetailDrawer" role="dialog" aria-modal="true" aria-labelledby="history-detail-title" onMouseDown={(event) => event.stopPropagation()}>
       <header className="historyDetailHeader">
+        {canRelistLot(lot) ? <StudioButton type="button" size="sm" variant="primary" loading={relisting} onClick={() => onRelist(lot)}>{relisting ? '上架中' : '再次上架'}</StudioButton> : null}
         <div><p>Lot review</p><h2 id="history-detail-title">拍品复盘详情</h2><span>{lot.id}</span></div>
         <StudioButton type="button" size="sm" variant="ghost" icon={<X size={15} />} onClick={onClose}>关闭</StudioButton>
       </header>
@@ -237,6 +281,7 @@ function HistoryLotDetailDrawer({ lot, order, onClose }: { lot: Lot; order?: Ord
             <DetailMetric label="溢价率" value={premiumRateText(lot)} />
             <DetailMetric label="参考估价" value={formatMoneyText(lot.estimatePrice)} />
             <DetailMetric label="保证金" value={formatMoneyText(lot.depositAmount)} />
+            <DetailMetric label="剩余库存" value={`${Number(lot.stock || 0)} 件`} />
             <DetailMetric label="买家 / 原因" value={historyReasonValue(lot)} wide />
           </HistoryDetailSection>
           <HistoryDetailSection icon={<Clock3 size={16} />} title="主播复盘">
@@ -250,7 +295,6 @@ function HistoryLotDetailDrawer({ lot, order, onClose }: { lot: Lot; order?: Ord
           </HistoryDetailSection>
           <HistoryDetailSection icon={<ImageIcon size={16} />} title="拍品资料">
             <DetailMetric label="分类" value={lot.category || '未分类'} />
-            <DetailMetric label="库存" value={lot.stock ? `${lot.stock} 件` : '未设置'} />
             <DetailMetric label="标签" value={tags.length ? tags.join(' / ') : '未设置'} wide />
             <DetailMetric label="拍品描述" value={lot.description || '暂无描述'} wide />
             <DetailMetric label="售后说明" value={lot.afterSaleNotes || '未填写'} wide />

@@ -31,6 +31,14 @@ coverage/
 __tests__/
 test/
 tests/
+!start-loadtest-local.ps1
+!stop-loadtest-local.ps1
+!start-loadtest-docker.ps1
+!stop-loadtest-docker.ps1
+!live-auction-bid-backend/loadtest/
+!live-auction-bid-backend/loadtest/**
+!live-auction-bid-backend/deploy/docker-compose.loadtest.yml
+!live-auction-bid-backend/deploy/Dockerfile.loadtest-runtime
 
 # Logs and reports
 *.log
@@ -38,6 +46,17 @@ logs/
 reports/
 tmp/
 .tmp/
+.local-run/
+.loadtest-run/
+live-auction-bid-backend/.loadtest-bin/
+live-auction-bid-backend/loadtest/.runs/
+**/local-assets/
+**/mysql-data/
+**/mysql-data-volume-copy-*/
+native-mysql-data/
+native-local-assets/
+native-loadtest-assets/
+backups/
 
 # Tooling caches
 .cache/
@@ -56,6 +75,8 @@ Thumbs.db
 .agents/
 .codex/
 .workflow/
+.superpowers/
+lark-*.png
 docs/KNOWLEDGE_BASE.md
 **/docs/KNOWLEDGE_BASE.md
 **/docs/openclaw/

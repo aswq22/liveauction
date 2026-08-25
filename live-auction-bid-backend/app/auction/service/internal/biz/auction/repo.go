@@ -15,6 +15,7 @@ type LotRepository interface {
 	Create(ctx context.Context, lot *v1.Lot, ownerUserID string, events []v1.AuctionEvent) error
 	Save(ctx context.Context, lot *v1.Lot, expectedVersion int64, events []v1.AuctionEvent) error
 	QueueLotAsNext(ctx context.Context, lotID, mainAccountID, ownerUserID string, nowMs int64) (*v1.Lot, int32, []v1.AuctionEvent, error)
+	RelistLotAsNext(ctx context.Context, sourceLotID, newLotID, mainAccountID, ownerUserID string, nowMs int64) (*v1.Lot, int32, []v1.AuctionEvent, error)
 	StartLotAsOnlyActive(ctx context.Context, lot *v1.Lot, expectedVersion int64, events []v1.AuctionEvent) error
 	AttachAssets(ctx context.Context, ownerUserID string, lot *v1.Lot) error
 	FindByID(ctx context.Context, lotID string) (*v1.Lot, error)
@@ -183,6 +184,7 @@ type OrderRepository interface {
 type PaymentRepository interface {
 	FindPaymentByIdempotencyKey(ctx context.Context, orderID, key string) (*Payment, bool, error)
 	CommitPaymentSuccess(ctx context.Context, payment Payment, order Order, expectedOrderVersion int64, events []v1.AuctionEvent) error
+	ReconcilePayments(ctx context.Context, nowMs int64, limit int) (PaymentReconcileSummary, error)
 }
 
 type DepositRepository interface {

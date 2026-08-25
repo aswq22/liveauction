@@ -14,6 +14,14 @@ workspace
 deploy/.env
 *.env.local
 **/*.env.local
+deploy/mysql-data
+deploy/mysql-data/
+deploy/mysql-data-volume-copy-*
+deploy/mysql-data-volume-copy-*/
+deploy/local-assets
+deploy/local-assets/
+backups
+backups/
 
 # Local agent/workspace artifacts.
 .codex

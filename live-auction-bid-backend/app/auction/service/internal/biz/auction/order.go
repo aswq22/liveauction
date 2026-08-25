@@ -2,7 +2,10 @@ package auction
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
@@ -167,41 +170,49 @@ func PublicVisibleLotStatuses() []v1.LotStatus {
 }
 
 type Order struct {
-	ID                      string                        `json:"id"`
-	MainAccountID           string                        `json:"mainAccountId"`
-	LotID                   string                        `json:"lotId"`
-	RoomID                  string                        `json:"roomId"`
-	LotTitle                string                        `json:"lotTitle"`
-	LotImageURL             string                        `json:"lotImageUrl"`
-	BuyerUserID             string                        `json:"buyerUserId"`
-	BuyerNickname           string                        `json:"buyerNickname"`
-	Status                  OrderStatus                   `json:"status"`
-	PaymentStatus           PaymentStatus                 `json:"paymentStatus"`
-	PaymentID               string                        `json:"paymentId,omitempty"`
-	ShippingAddressID       string                        `json:"shippingAddressId,omitempty"`
-	ShippingAddressSnapshot *shop.DeliveryAddressSnapshot `json:"shippingAddressSnapshot,omitempty"`
-	Amount                  int64                         `json:"amount"`
-	Currency                string                        `json:"currency"`
-	CreatedAtUnixMs         int64                         `json:"createdAtUnixMs"`
-	UpdatedAtUnixMs         int64                         `json:"updatedAtUnixMs"`
-	ExpiresAtUnixMs         int64                         `json:"expiresAtUnixMs"`
-	PaidAtUnixMs            int64                         `json:"paidAtUnixMs,omitempty"`
-	Version                 int64                         `json:"version"`
+	ID                        string                        `json:"id"`
+	MainAccountID             string                        `json:"mainAccountId"`
+	LotID                     string                        `json:"lotId"`
+	RoomID                    string                        `json:"roomId"`
+	LotTitle                  string                        `json:"lotTitle"`
+	LotImageURL               string                        `json:"lotImageUrl"`
+	BuyerUserID               string                        `json:"buyerUserId"`
+	BuyerNickname             string                        `json:"buyerNickname"`
+	Status                    OrderStatus                   `json:"status"`
+	PaymentStatus             PaymentStatus                 `json:"paymentStatus"`
+	PaymentID                 string                        `json:"paymentId,omitempty"`
+	PaymentProvider           string                        `json:"paymentProvider,omitempty"`
+	PaymentProviderPaymentID  string                        `json:"paymentProviderPaymentId,omitempty"`
+	PaymentRequestFingerprint string                        `json:"paymentRequestFingerprint,omitempty"`
+	PaymentReconciledAtUnixMs int64                         `json:"paymentReconciledAtUnixMs,omitempty"`
+	ShippingAddressID         string                        `json:"shippingAddressId,omitempty"`
+	ShippingAddressSnapshot   *shop.DeliveryAddressSnapshot `json:"shippingAddressSnapshot,omitempty"`
+	Amount                    int64                         `json:"amount"`
+	Currency                  string                        `json:"currency"`
+	CreatedAtUnixMs           int64                         `json:"createdAtUnixMs"`
+	UpdatedAtUnixMs           int64                         `json:"updatedAtUnixMs"`
+	ExpiresAtUnixMs           int64                         `json:"expiresAtUnixMs"`
+	PaidAtUnixMs              int64                         `json:"paidAtUnixMs,omitempty"`
+	Version                   int64                         `json:"version"`
 }
 
 type Payment struct {
-	ID              string        `json:"id"`
-	MainAccountID   string        `json:"mainAccountId"`
-	OrderID         string        `json:"orderId"`
-	LotID           string        `json:"lotId"`
-	BuyerUserID     string        `json:"buyerUserId"`
-	Status          PaymentStatus `json:"status"`
-	Amount          int64         `json:"amount"`
-	Currency        string        `json:"currency"`
-	IdempotencyKey  string        `json:"idempotencyKey,omitempty"`
-	CreatedAtUnixMs int64         `json:"createdAtUnixMs"`
-	UpdatedAtUnixMs int64         `json:"updatedAtUnixMs"`
-	SucceededAtMs   int64         `json:"succeededAtUnixMs,omitempty"`
+	ID                 string        `json:"id"`
+	MainAccountID      string        `json:"mainAccountId"`
+	OrderID            string        `json:"orderId"`
+	LotID              string        `json:"lotId"`
+	BuyerUserID        string        `json:"buyerUserId"`
+	Status             PaymentStatus `json:"status"`
+	Provider           string        `json:"provider"`
+	ProviderPaymentID  string        `json:"providerPaymentId,omitempty"`
+	Amount             int64         `json:"amount"`
+	Currency           string        `json:"currency"`
+	IdempotencyKey     string        `json:"idempotencyKey,omitempty"`
+	RequestFingerprint string        `json:"requestFingerprint,omitempty"`
+	CreatedAtUnixMs    int64         `json:"createdAtUnixMs"`
+	UpdatedAtUnixMs    int64         `json:"updatedAtUnixMs"`
+	SucceededAtMs      int64         `json:"succeededAtUnixMs,omitempty"`
+	ReconciledAtUnixMs int64         `json:"reconciledAtUnixMs,omitempty"`
 }
 
 type DepositHold struct {
@@ -226,25 +237,29 @@ type DepositHold struct {
 }
 
 type OrderSummary struct {
-	ID                      string                        `json:"id"`
-	MainAccountID           string                        `json:"mainAccountId"`
-	LotID                   string                        `json:"lotId"`
-	RoomID                  string                        `json:"roomId"`
-	LotTitle                string                        `json:"lotTitle"`
-	LotImageURL             string                        `json:"lotImageUrl"`
-	BuyerUserID             string                        `json:"buyerUserId"`
-	BuyerNickname           string                        `json:"buyerNickname,omitempty"`
-	Status                  OrderStatus                   `json:"status"`
-	PaymentStatus           PaymentStatus                 `json:"paymentStatus"`
-	PaymentID               string                        `json:"paymentId,omitempty"`
-	ShippingAddressID       string                        `json:"shippingAddressId,omitempty"`
-	ShippingAddressSnapshot *shop.DeliveryAddressSnapshot `json:"shippingAddressSnapshot,omitempty"`
-	Amount                  int64                         `json:"amount"`
-	Currency                string                        `json:"currency"`
-	CreatedAtUnixMs         int64                         `json:"createdAtUnixMs"`
-	UpdatedAtUnixMs         int64                         `json:"updatedAtUnixMs"`
-	ExpiresAtUnixMs         int64                         `json:"expiresAtUnixMs"`
-	PaidAtUnixMs            int64                         `json:"paidAtUnixMs,omitempty"`
+	ID                        string                        `json:"id"`
+	MainAccountID             string                        `json:"mainAccountId"`
+	LotID                     string                        `json:"lotId"`
+	RoomID                    string                        `json:"roomId"`
+	LotTitle                  string                        `json:"lotTitle"`
+	LotImageURL               string                        `json:"lotImageUrl"`
+	BuyerUserID               string                        `json:"buyerUserId"`
+	BuyerNickname             string                        `json:"buyerNickname,omitempty"`
+	Status                    OrderStatus                   `json:"status"`
+	PaymentStatus             PaymentStatus                 `json:"paymentStatus"`
+	PaymentID                 string                        `json:"paymentId,omitempty"`
+	PaymentProvider           string                        `json:"paymentProvider,omitempty"`
+	PaymentProviderPaymentID  string                        `json:"paymentProviderPaymentId,omitempty"`
+	PaymentRequestFingerprint string                        `json:"paymentRequestFingerprint,omitempty"`
+	PaymentReconciledAtUnixMs int64                         `json:"paymentReconciledAtUnixMs,omitempty"`
+	ShippingAddressID         string                        `json:"shippingAddressId,omitempty"`
+	ShippingAddressSnapshot   *shop.DeliveryAddressSnapshot `json:"shippingAddressSnapshot,omitempty"`
+	Amount                    int64                         `json:"amount"`
+	Currency                  string                        `json:"currency"`
+	CreatedAtUnixMs           int64                         `json:"createdAtUnixMs"`
+	UpdatedAtUnixMs           int64                         `json:"updatedAtUnixMs"`
+	ExpiresAtUnixMs           int64                         `json:"expiresAtUnixMs"`
+	PaidAtUnixMs              int64                         `json:"paidAtUnixMs,omitempty"`
 }
 
 type PaymentSummary struct {
@@ -284,6 +299,14 @@ type OrderList struct {
 	Total    int64          `json:"total"`
 	Page     int            `json:"page"`
 	PageSize int            `json:"pageSize"`
+}
+
+type PaymentReconcileSummary struct {
+	Scanned        int `json:"scanned"`
+	OrdersPaid     int `json:"ordersPaid"`
+	PaymentsMarked int `json:"paymentsMarked"`
+	OrdersClosed   int `json:"ordersClosed"`
+	Conflicts      int `json:"conflicts"`
 }
 
 type LotQuery struct {
@@ -491,31 +514,39 @@ func (o Order) effectiveStatus(nowMs int64) (OrderStatus, PaymentStatus) {
 func (o Order) Summary() OrderSummary {
 	status, paymentStatus := o.effectiveStatus(clock.NowMs())
 	return OrderSummary{
-		ID:                      o.ID,
-		MainAccountID:           o.MainAccountID,
-		LotID:                   o.LotID,
-		RoomID:                  o.RoomID,
-		LotTitle:                o.LotTitle,
-		LotImageURL:             o.LotImageURL,
-		BuyerUserID:             o.BuyerUserID,
-		BuyerNickname:           o.BuyerNickname,
-		Status:                  status,
-		PaymentStatus:           paymentStatus,
-		PaymentID:               o.PaymentID,
-		ShippingAddressID:       o.ShippingAddressID,
-		ShippingAddressSnapshot: o.ShippingAddressSnapshot,
-		Amount:                  o.Amount,
-		Currency:                o.Currency,
-		CreatedAtUnixMs:         o.CreatedAtUnixMs,
-		UpdatedAtUnixMs:         o.UpdatedAtUnixMs,
-		ExpiresAtUnixMs:         o.ExpiresAtUnixMs,
-		PaidAtUnixMs:            o.PaidAtUnixMs,
+		ID:                        o.ID,
+		MainAccountID:             o.MainAccountID,
+		LotID:                     o.LotID,
+		RoomID:                    o.RoomID,
+		LotTitle:                  o.LotTitle,
+		LotImageURL:               o.LotImageURL,
+		BuyerUserID:               o.BuyerUserID,
+		BuyerNickname:             o.BuyerNickname,
+		Status:                    status,
+		PaymentStatus:             paymentStatus,
+		PaymentID:                 o.PaymentID,
+		PaymentProvider:           o.PaymentProvider,
+		PaymentProviderPaymentID:  o.PaymentProviderPaymentID,
+		PaymentRequestFingerprint: o.PaymentRequestFingerprint,
+		PaymentReconciledAtUnixMs: o.PaymentReconciledAtUnixMs,
+		ShippingAddressID:         o.ShippingAddressID,
+		ShippingAddressSnapshot:   o.ShippingAddressSnapshot,
+		Amount:                    o.Amount,
+		Currency:                  o.Currency,
+		CreatedAtUnixMs:           o.CreatedAtUnixMs,
+		UpdatedAtUnixMs:           o.UpdatedAtUnixMs,
+		ExpiresAtUnixMs:           o.ExpiresAtUnixMs,
+		PaidAtUnixMs:              o.PaidAtUnixMs,
 	}
 }
 
-func NewPayment(id string, order Order, idempotencyKey string, amount int64, currency string, nowMs int64) (*Payment, error) {
+func NewPayment(id string, order Order, provider string, idempotencyKey string, amount int64, currency string, nowMs int64) (*Payment, error) {
 	if id == "" {
 		return nil, fmt.Errorf("%w: payment id is required", apperr.ErrInvalidArgument)
+	}
+	provider = strings.TrimSpace(provider)
+	if provider == "" {
+		return nil, fmt.Errorf("%w: payment provider is required", apperr.ErrInvalidArgument)
 	}
 	if idempotencyKey == "" {
 		return nil, fmt.Errorf("%w: payment idempotency key is required", apperr.ErrInvalidArgument)
@@ -530,18 +561,51 @@ func NewPayment(id string, order Order, idempotencyKey string, amount int64, cur
 		return nil, fmt.Errorf("%w: payment amount does not match order", apperr.ErrInvalidArgument)
 	}
 	return &Payment{
-		ID:              id,
-		MainAccountID:   order.MainAccountID,
-		OrderID:         order.ID,
-		LotID:           order.LotID,
-		BuyerUserID:     order.BuyerUserID,
-		Status:          PaymentStatusInit,
-		Amount:          amount,
-		Currency:        currency,
-		IdempotencyKey:  idempotencyKey,
-		CreatedAtUnixMs: nowMs,
-		UpdatedAtUnixMs: nowMs,
+		ID:                 id,
+		MainAccountID:      order.MainAccountID,
+		OrderID:            order.ID,
+		LotID:              order.LotID,
+		BuyerUserID:        order.BuyerUserID,
+		Status:             PaymentStatusInit,
+		Provider:           provider,
+		Amount:             amount,
+		Currency:           currency,
+		IdempotencyKey:     idempotencyKey,
+		RequestFingerprint: PaymentRequestFingerprint(order, amount, currency, provider),
+		CreatedAtUnixMs:    nowMs,
+		UpdatedAtUnixMs:    nowMs,
 	}, nil
+}
+
+func PaymentRequestFingerprint(order Order, amount int64, currency, provider string) string {
+	parts := []string{
+		strings.TrimSpace(order.MainAccountID),
+		strings.TrimSpace(order.ID),
+		strings.TrimSpace(order.LotID),
+		strings.TrimSpace(order.BuyerUserID),
+		strconv.FormatInt(amount, 10),
+		strings.TrimSpace(currency),
+		strings.TrimSpace(provider),
+	}
+	sum := sha256.Sum256([]byte(strings.Join(parts, "\x1f")))
+	return hex.EncodeToString(sum[:])
+}
+
+func ValidatePaymentReplay(payment Payment, order Order, amount int64, currency, provider string) error {
+	if payment.OrderID != order.ID {
+		return fmt.Errorf("%w: payment order mismatch", apperr.ErrInvalidArgument)
+	}
+	if payment.Amount != amount || payment.Currency != currency {
+		return fmt.Errorf("%w: payment idempotency key reused with different amount", apperr.ErrInvalidArgument)
+	}
+	if strings.TrimSpace(payment.Provider) != "" && payment.Provider != strings.TrimSpace(provider) {
+		return fmt.Errorf("%w: payment idempotency key reused with different provider", apperr.ErrInvalidArgument)
+	}
+	expected := PaymentRequestFingerprint(order, amount, currency, provider)
+	if payment.RequestFingerprint != "" && payment.RequestFingerprint != expected {
+		return fmt.Errorf("%w: payment idempotency key reused with different request", apperr.ErrInvalidArgument)
+	}
+	return nil
 }
 
 func (p *Payment) MarkProcessing(nowMs int64) error {
@@ -556,14 +620,19 @@ func (p *Payment) MarkProcessing(nowMs int64) error {
 	return nil
 }
 
-func (p *Payment) MarkSuccess(nowMs int64) error {
+func (p *Payment) MarkSuccess(providerPaymentID string, nowMs int64) error {
 	if p == nil {
 		return fmt.Errorf("%w: payment is required", apperr.ErrInvalidArgument)
 	}
 	if p.Status != PaymentStatusProcessing {
 		return fmt.Errorf("%w: only processing payment can succeed, current status: %s", apperr.ErrInvalidArgument, p.Status)
 	}
+	providerPaymentID = strings.TrimSpace(providerPaymentID)
+	if providerPaymentID == "" {
+		return fmt.Errorf("%w: provider payment id is required", apperr.ErrInvalidArgument)
+	}
 	p.Status = PaymentStatusSuccess
+	p.ProviderPaymentID = providerPaymentID
 	p.UpdatedAtUnixMs = nowMs
 	p.SucceededAtMs = nowMs
 	return nil
@@ -579,6 +648,22 @@ func (p Payment) Summary() PaymentSummary {
 		CreatedAtUnixMs: p.CreatedAtUnixMs,
 		SucceededAtMs:   p.SucceededAtMs,
 	}
+}
+
+func ReleaseDepositHold(hold *DepositHold, nowMs int64) error {
+	if hold == nil {
+		return fmt.Errorf("%w: deposit hold is required", apperr.ErrInvalidArgument)
+	}
+	if hold.Status == DepositStatusReleased {
+		return nil
+	}
+	if hold.Status != DepositStatusHeld {
+		return fmt.Errorf("%w: only held deposit can be released, current status: %s", apperr.ErrInvalidArgument, hold.Status)
+	}
+	hold.Status = DepositStatusReleased
+	hold.ReleasedAtUnixMs = nowMs
+	hold.UpdatedAtUnixMs = nowMs
+	return nil
 }
 
 func MarkOrderPaid(order *Order, payment Payment, nowMs int64) error {
@@ -597,8 +682,55 @@ func MarkOrderPaid(order *Order, payment Payment, nowMs int64) error {
 	order.Status = OrderStatusPaid
 	order.PaymentStatus = PaymentStatusSuccess
 	order.PaymentID = payment.ID
+	order.PaymentProvider = payment.Provider
+	order.PaymentProviderPaymentID = payment.ProviderPaymentID
+	order.PaymentRequestFingerprint = payment.RequestFingerprint
 	order.PaidAtUnixMs = nowMs
 	order.UpdatedAtUnixMs = nowMs
 	order.Version++
 	return nil
+}
+
+func ReconcileOrderPayment(order *Order, payment Payment, nowMs int64) (bool, error) {
+	if order == nil {
+		return false, fmt.Errorf("%w: order is required", apperr.ErrInvalidArgument)
+	}
+	if payment.Status != PaymentStatusSuccess {
+		return false, nil
+	}
+	if payment.OrderID != order.ID {
+		return false, fmt.Errorf("%w: payment order mismatch", apperr.ErrInvalidArgument)
+	}
+	if payment.Amount != order.Amount || payment.Currency != order.Currency {
+		return false, fmt.Errorf("%w: payment amount does not match order", apperr.ErrInvalidArgument)
+	}
+	if order.Status == OrderStatusPaid && order.PaymentStatus == PaymentStatusSuccess {
+		if order.PaymentID == "" {
+			order.PaymentID = payment.ID
+		}
+		if order.PaymentProvider == "" {
+			order.PaymentProvider = payment.Provider
+		}
+		if order.PaymentProviderPaymentID == "" {
+			order.PaymentProviderPaymentID = payment.ProviderPaymentID
+		}
+		if order.PaymentRequestFingerprint == "" {
+			order.PaymentRequestFingerprint = payment.RequestFingerprint
+		}
+		if order.PaymentReconciledAtUnixMs == 0 {
+			order.PaymentReconciledAtUnixMs = nowMs
+			order.UpdatedAtUnixMs = nowMs
+			order.Version++
+			return true, nil
+		}
+		return false, nil
+	}
+	if order.Status != OrderStatusPendingPayment {
+		return false, fmt.Errorf("%w: only pending payment order can be reconciled, current status: %s", apperr.ErrInvalidArgument, order.Status)
+	}
+	if err := MarkOrderPaid(order, payment, nowMs); err != nil {
+		return false, err
+	}
+	order.PaymentReconciledAtUnixMs = nowMs
+	return true, nil
 }

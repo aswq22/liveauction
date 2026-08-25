@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -81,6 +83,41 @@ func (s *Store) CommitDepositHold(ctx context.Context, hold auction.DepositHold)
 
 func fmtInvalidDepositState(status auction.DepositStatus) error {
 	return errors.Join(apperr.ErrInvalidArgument, errors.New("deposit already exists with status "+string(status)))
+}
+
+func releaseHeldDepositHoldsForUserOrderModel(ctx context.Context, tx *gorm.DB, order *UserOrderModel) error {
+	if order == nil || order.Source != userOrderSourceAuction {
+		return nil
+	}
+	items, err := findUserOrderItemsInTx(ctx, tx, order.ID)
+	if err != nil {
+		return err
+	}
+	if len(items) == 0 {
+		return nil
+	}
+	return releaseHeldDepositHoldsForLot(ctx, tx, items[0].LotID, order.UpdatedAtUnixMs)
+}
+
+func releaseHeldDepositHoldsForLot(ctx context.Context, tx *gorm.DB, lotID string, nowMs int64) error {
+	if stringsTrimmedEmpty(lotID) {
+		return nil
+	}
+	if nowMs <= 0 {
+		nowMs = time.Now().UnixMilli()
+	}
+	return tx.WithContext(ctx).
+		Model(&AuctionDepositHoldModel{}).
+		Where("lot_id = ? AND status = ?", lotID, string(auction.DepositStatusHeld)).
+		Updates(map[string]any{
+			"status":              string(auction.DepositStatusReleased),
+			"released_at_unix_ms": nowMs,
+			"updated_at_unix_ms":  nowMs,
+		}).Error
+}
+
+func stringsTrimmedEmpty(value string) bool {
+	return strings.TrimSpace(value) == ""
 }
 
 func depositHoldToModel(hold auction.DepositHold) (*AuctionDepositHoldModel, error) {

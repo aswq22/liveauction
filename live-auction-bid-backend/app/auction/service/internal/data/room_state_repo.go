@@ -126,6 +126,160 @@ func (s *Store) QueueLotAsNext(ctx context.Context, lotID, mainAccountID, ownerU
 	return queuedLot, queuePosition, events, nil
 }
 
+func (s *Store) RelistLotAsNext(ctx context.Context, sourceLotID, newLotID, mainAccountID, ownerUserID string, nowMs int64) (*v1.Lot, int32, []v1.AuctionEvent, error) {
+	sourceLotID = strings.TrimSpace(sourceLotID)
+	newLotID = strings.TrimSpace(newLotID)
+	mainAccountID = strings.TrimSpace(mainAccountID)
+	if sourceLotID == "" || newLotID == "" {
+		return nil, 0, nil, errors.New("source lot id and new lot id are required")
+	}
+	if mainAccountID == "" {
+		return nil, 0, nil, fmt.Errorf("%w: main account id is required", apperr.ErrPermissionDenied)
+	}
+	if nowMs <= 0 {
+		nowMs = time.Now().UnixMilli()
+	}
+
+	var queuedLot *v1.Lot
+	var queuePosition int32
+	var events []v1.AuctionEvent
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var sourceModel AuctionLotModel
+		if err := tx.WithContext(ctx).
+			Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ?", sourceLotID).
+			First(&sourceModel).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperr.ErrNotFound
+			}
+			return err
+		}
+		if sourceModel.MainAccountID != mainAccountID {
+			return apperr.ErrPermissionDenied
+		}
+		sourceLot, err := modelToLot(&sourceModel)
+		if err != nil {
+			return err
+		}
+		relistReason := relistEventReason(sourceLotID)
+		var existingRelistCount int64
+		if err := tx.WithContext(ctx).
+			Model(&AuctionEventModel{}).
+			Where("main_account_id = ? AND room_id = ? AND type = ? AND reason = ?", sourceLot.GetMainAccountId(), sourceLot.GetRoomId(), int32(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_QUEUED), relistReason).
+			Count(&existingRelistCount).Error; err != nil {
+			return err
+		}
+		if existingRelistCount > 0 || lotRelistMarker(sourceModel.CancelReason) != "" {
+			return fmt.Errorf("%w: lot has already been relisted", apperr.ErrInvalidArgument)
+		}
+		if err := ensureRoomStateRecord(ctx, tx, sourceLot.GetRoomId(), sourceLot.GetMainAccountId(), nowMs); err != nil {
+			return err
+		}
+		var state AuctionRoomStateModel
+		if err := tx.WithContext(ctx).
+			Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("room_id = ?", sourceLot.GetRoomId()).
+			First(&state).Error; err != nil {
+			return err
+		}
+		queuePosition = state.NextQueuePosition
+		if queuePosition <= 0 {
+			queuePosition = 1
+		}
+		lot, err := auction.NewRelistLotFromFailed(newLotID, sourceLot)
+		if err != nil {
+			return err
+		}
+		if err := auction.QueueLot(lot, queuePosition); err != nil {
+			return err
+		}
+		model, err := lotToModel(lot)
+		if err != nil {
+			return err
+		}
+		if err := tx.WithContext(ctx).Create(model).Error; err != nil {
+			return err
+		}
+		lot.CreatedAtUnixMs = modelTimeUnixMsOr(model.CreatedAt, nowMs)
+		lot.UpdatedAtUnixMs = modelTimeUnixMsOr(model.UpdatedAt, lot.CreatedAtUnixMs)
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&AuctionLotStatsModel{
+			LotID:           lot.Id,
+			MainAccountID:   lot.GetMainAccountId(),
+			RoomID:          lot.RoomId,
+			UpdatedAtUnixMs: 0,
+		}).Error; err != nil {
+			return err
+		}
+		state.NextQueuePosition = queuePosition + 1
+		if err := tx.WithContext(ctx).
+			Model(&AuctionRoomStateModel{}).
+			Where("room_id = ?", lot.GetRoomId()).
+			Updates(map[string]any{
+				"main_account_id":     lot.GetMainAccountId(),
+				"next_queue_position": state.NextQueuePosition,
+				"updated_at_unix_ms":  nowMs,
+			}).Error; err != nil {
+			return err
+		}
+		if err := attachAssetFilesByURL(tx, ownerUserID, lot.GetId(), lotAssetURLs(lot)); err != nil {
+			return err
+		}
+		event := auction.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_QUEUED, lot)
+		event.Reason = relistReason
+		events = []v1.AuctionEvent{event}
+		if err := createEventModels(ctx, tx, events); err != nil {
+			return err
+		}
+		sourceReason := appendRelistMarker(sourceModel.CancelReason, newLotID)
+		if err := tx.WithContext(ctx).
+			Model(&AuctionLotModel{}).
+			Where("id = ?", sourceLotID).
+			Updates(map[string]any{
+				"cancel_reason":      sourceReason,
+				"updated_at_unix_ms": nowMs,
+			}).Error; err != nil {
+			return err
+		}
+		queuedLot = lot
+		return nil
+	}); err != nil {
+		return nil, 0, nil, err
+	}
+	if err := s.streamEvents(ctx, events); err != nil {
+		return nil, 0, nil, err
+	}
+	return queuedLot, queuePosition, events, nil
+}
+
+const relistMarkerPrefix = "已重新上架为 "
+
+func relistEventReason(sourceLotID string) string {
+	return "relisted from " + strings.TrimSpace(sourceLotID)
+}
+
+func lotRelistMarker(reason string) string {
+	reason = strings.TrimSpace(reason)
+	for _, part := range strings.Split(reason, "；") {
+		part = strings.TrimSpace(part)
+		if strings.HasPrefix(part, relistMarkerPrefix) {
+			return strings.TrimSpace(strings.TrimPrefix(part, relistMarkerPrefix))
+		}
+	}
+	return ""
+}
+
+func appendRelistMarker(reason, newLotID string) string {
+	reason = strings.TrimSpace(reason)
+	if marker := lotRelistMarker(reason); marker != "" {
+		return reason
+	}
+	marker := relistMarkerPrefix + strings.TrimSpace(newLotID)
+	if reason == "" {
+		return marker
+	}
+	return reason + "；" + marker
+}
+
 func (s *Store) StartLotAsOnlyActive(ctx context.Context, lot *v1.Lot, expectedVersion int64, events []v1.AuctionEvent) error {
 	if lot == nil {
 		return errors.New("lot is required")

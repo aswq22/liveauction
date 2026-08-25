@@ -27,6 +27,10 @@ export type OrderSummary = {
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   paymentId?: string;
+  paymentProvider?: string;
+  paymentProviderPaymentId?: string;
+  paymentRequestFingerprint?: string;
+  paymentReconciledAtUnixMs?: number | string;
   shippingAddressId?: string;
   shippingAddressSnapshot?: DeliveryAddressSnapshot | null;
   addressSnapshot?: string;

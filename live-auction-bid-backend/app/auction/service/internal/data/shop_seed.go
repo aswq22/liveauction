@@ -68,18 +68,6 @@ var shopSeeds = []shopSeed{
 		MainImageURL: "/shop-assets/auction-lots/sapphire-diamond-necklace.png", Tags: []string{"蓝宝石", "礼盒"}, Badges: []string{"直播中"}, PriceAmount: 75900, OriginalPriceAmount: 99900, SoldLabel: "1.2万+", Live: true,
 		SKUs: []shopSeedSKU{{ID: "sku-sapphire-necklace", Name: "礼盒装", PriceAmount: 75900, Stock: 22}},
 	},
-	{
-		ID: "gift-jewelry-box", Title: "珠宝收纳盒 旅行便携首饰盒多层分区", Subtitle: "百元低价，收纳不打结",
-		Description: "便携首饰盒，多层分区，适合项链、耳饰和戒指。", Category: "收纳配饰", ShopName: "好物研究所",
-		MainImageURL: "/douyin-assets/images/6V2vxN6FH4QiuCQ3KMbP7.png", Tags: []string{"收纳", "百元低价"}, Badges: []string{"补贴"}, PriceAmount: 3990, OriginalPriceAmount: 5900, SoldLabel: "12.3万+", Live: false,
-		SKUs: []shopSeedSKU{{ID: "sku-jewelry-box-pink", Name: "樱花粉", PriceAmount: 3990, Stock: 300}, {ID: "sku-jewelry-box-cream", Name: "奶油白", PriceAmount: 3990, Stock: 280}},
-	},
-	{
-		ID: "silver-bracelet-stack", Title: "银手镯叠戴套装 轻奢百搭开口款", Subtitle: "低价开拍，适合通勤",
-		Description: "轻奢银手镯套装，开口设计，适合日常叠戴。", Category: "手链手串", ShopName: "好物研究所",
-		MainImageURL: "/douyin-assets/images/9K9Ioxl-NqRtr7Tx1L6mH.png", Tags: []string{"银饰", "低价开拍"}, Badges: []string{"新"}, PriceAmount: 12900, OriginalPriceAmount: 19900, SoldLabel: "8600+", Live: false,
-		SKUs: []shopSeedSKU{{ID: "sku-silver-stack", Name: "三件套", PriceAmount: 12900, Stock: 150}},
-	},
 }
 
 func (s *Store) EnsureShopSeeds(ctx context.Context) error {
