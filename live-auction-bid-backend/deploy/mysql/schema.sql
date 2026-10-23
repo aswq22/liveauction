@@ -400,6 +400,96 @@ CREATE TABLE IF NOT EXISTS auction_user_sessions (
   INDEX idx_session_expiry (refresh_expires_at_unix_ms)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS agent_runs (
+  id VARCHAR(64) PRIMARY KEY,
+  tenant_id VARCHAR(64) NOT NULL,
+  operator_id VARCHAR(64) NOT NULL,
+  idempotency_key VARCHAR(128) NOT NULL,
+  trace_id VARCHAR(128) NOT NULL DEFAULT '',
+  goal TEXT NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  proposal_json TEXT NOT NULL,
+  error_code VARCHAR(64) NOT NULL DEFAULT '',
+  error_message TEXT NOT NULL,
+  version BIGINT NOT NULL DEFAULT 1,
+  last_runtime_source_seq BIGINT NOT NULL DEFAULT 0,
+  projection_complete BOOLEAN NOT NULL DEFAULT FALSE,
+  run_type INT NOT NULL DEFAULT 0,
+  session_id VARCHAR(64) NOT NULL DEFAULT '',
+  session_version BIGINT NOT NULL DEFAULT 0,
+  turn_input_json TEXT NOT NULL,
+  turn_result_json TEXT NOT NULL,
+  created_at_unix_ms BIGINT NOT NULL,
+  updated_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  UNIQUE INDEX uidx_agent_run_idempotency (tenant_id, operator_id, idempotency_key),
+  INDEX idx_agent_run_tenant_updated (tenant_id, updated_at),
+  INDEX idx_agent_run_projection_complete (projection_complete),
+  INDEX idx_agent_run_session (session_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS agent_run_events (
+  run_id VARCHAR(64) NOT NULL,
+  seq BIGINT NOT NULL,
+  runtime_source_seq BIGINT NULL,
+  event_type VARCHAR(64) NOT NULL,
+  message TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  created_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  UNIQUE INDEX uidx_agent_run_event_seq (run_id, seq),
+  UNIQUE INDEX uidx_agent_run_runtime_source_seq (run_id, runtime_source_seq),
+  INDEX idx_agent_run_event_run_seq (run_id, seq)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS agent_sessions (
+  id VARCHAR(64) PRIMARY KEY,
+  tenant_id VARCHAR(64) NOT NULL,
+  operator_id VARCHAR(64) NOT NULL,
+  room_id VARCHAR(64) NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  version BIGINT NOT NULL DEFAULT 1,
+  conversation_summary TEXT NOT NULL,
+  active_snapshot_version BIGINT NOT NULL DEFAULT 0,
+  created_at_unix_ms BIGINT NOT NULL,
+  updated_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  INDEX idx_agent_session_tenant_updated (tenant_id, updated_at_unix_ms)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS agent_session_messages (
+  session_id VARCHAR(64) NOT NULL,
+  seq BIGINT NOT NULL,
+  role VARCHAR(32) NOT NULL,
+  content TEXT NOT NULL,
+  run_id VARCHAR(64) NOT NULL DEFAULT '',
+  created_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  UNIQUE INDEX uidx_agent_session_message_seq (session_id, seq),
+  INDEX idx_agent_session_message_run (run_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS agent_draft_candidates (
+  id VARCHAR(64) PRIMARY KEY,
+  session_id VARCHAR(64) NOT NULL,
+  source_type VARCHAR(32) NOT NULL,
+  existing_lot_id VARCHAR(64) NOT NULL DEFAULT '',
+  position INT NOT NULL,
+  selected_by_default BOOLEAN NOT NULL DEFAULT TRUE,
+  draft_json TEXT NOT NULL,
+  field_sources_json TEXT NOT NULL,
+  validation_json TEXT NOT NULL,
+  provenance_version INT NOT NULL DEFAULT 0,
+  version BIGINT NOT NULL DEFAULT 1,
+  created_at_unix_ms BIGINT NOT NULL,
+  updated_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  UNIQUE INDEX uidx_agent_draft_candidate_position (session_id, position)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 CREATE TABLE IF NOT EXISTS asset_files (
   id VARCHAR(64) PRIMARY KEY,
@@ -432,6 +522,96 @@ CREATE TABLE IF NOT EXISTS asset_files (
   INDEX idx_asset_expiry (expires_at_unix_ms),
   INDEX idx_asset_deleted_at (deleted_at_unix_ms),
   UNIQUE INDEX idx_asset_object_key (object_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS agent_candidate_assets (
+  candidate_id VARCHAR(64) PRIMARY KEY,
+  session_id VARCHAR(64) NOT NULL,
+  asset_id VARCHAR(64) NOT NULL,
+  tenant_id VARCHAR(64) NOT NULL,
+  operator_id VARCHAR(64) NOT NULL,
+  created_at_unix_ms BIGINT NOT NULL,
+  updated_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  UNIQUE INDEX uidx_agent_candidate_asset_asset (asset_id),
+  INDEX idx_agent_candidate_asset_session (session_id),
+  INDEX idx_agent_candidate_asset_tenant (tenant_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS agent_approval_snapshots (
+  session_id VARCHAR(64) NOT NULL,
+  snapshot_version BIGINT NOT NULL,
+  snapshot_json LONGTEXT NOT NULL,
+  content_hash CHAR(64) NOT NULL,
+  created_by VARCHAR(64) NOT NULL,
+  created_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  UNIQUE INDEX uidx_agent_approval_snapshot_version (session_id, snapshot_version)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS agent_proposal_executions (
+  id VARCHAR(64) PRIMARY KEY,
+  tenant_id VARCHAR(64) NOT NULL,
+  operator_id VARCHAR(64) NOT NULL,
+  session_id VARCHAR(64) NOT NULL,
+  snapshot_version BIGINT NOT NULL,
+  idempotency_key VARCHAR(128) NOT NULL,
+  request_fingerprint CHAR(64) NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  selected_candidate_ids_json JSON NOT NULL,
+  ordered_candidate_ids_json JSON NOT NULL,
+  created_lot_ids_json JSON NOT NULL,
+  queue_positions_json JSON NOT NULL,
+  error_code VARCHAR(64) NOT NULL DEFAULT '',
+  created_at_unix_ms BIGINT NOT NULL,
+  completed_at_unix_ms BIGINT NOT NULL DEFAULT 0,
+	trace_id VARCHAR(128) NOT NULL DEFAULT '',
+  created_at DATETIME(3) NULL,
+  updated_at DATETIME(3) NULL,
+  UNIQUE INDEX uk_agent_execution_idempotency (session_id, snapshot_version, idempotency_key),
+  INDEX idx_agent_execution_tenant (tenant_id),
+  INDEX idx_agent_execution_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS agent_approval_audits (
+  id VARCHAR(64) PRIMARY KEY,
+  execution_id VARCHAR(64) NOT NULL,
+  tenant_id VARCHAR(64) NOT NULL,
+  operator_id VARCHAR(64) NOT NULL,
+  session_id VARCHAR(64) NOT NULL,
+  snapshot_version BIGINT NOT NULL,
+  details_json JSON NOT NULL,
+  created_at_unix_ms BIGINT NOT NULL,
+  created_at DATETIME(3) NULL,
+  UNIQUE INDEX uk_agent_approval_audit_execution (execution_id),
+  INDEX idx_agent_approval_audit_tenant (tenant_id),
+  INDEX idx_agent_approval_audit_session (session_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS agent_approval_outbox (
+  id VARCHAR(64) PRIMARY KEY,
+  execution_id VARCHAR(64) NOT NULL,
+  session_id VARCHAR(64) NOT NULL,
+  room_id VARCHAR(64) NOT NULL,
+  trace_id VARCHAR(128) NOT NULL DEFAULT '',
+  payload_json JSON NOT NULL,
+  visible_at_unix_ms BIGINT NOT NULL,
+  published_at_unix_ms BIGINT NOT NULL DEFAULT 0,
+  claim_token VARCHAR(96) NOT NULL DEFAULT '',
+  claim_until_unix_ms BIGINT NOT NULL DEFAULT 0,
+  last_publish_error VARCHAR(256) NOT NULL DEFAULT '',
+  publish_attempts INT NOT NULL DEFAULT 0,
+  next_attempt_at_unix_ms BIGINT NOT NULL DEFAULT 0,
+  dead_lettered_at_unix_ms BIGINT NOT NULL DEFAULT 0,
+  created_at DATETIME(3) NULL,
+  UNIQUE INDEX uk_agent_approval_outbox_execution (execution_id),
+  INDEX idx_agent_approval_outbox_session (session_id),
+  INDEX idx_agent_approval_outbox_room (room_id),
+  INDEX idx_agent_approval_outbox_pending (published_at_unix_ms),
+  INDEX idx_agent_approval_outbox_claim (claim_until_unix_ms),
+  INDEX idx_agent_approval_outbox_retry (next_attempt_at_unix_ms),
+  INDEX idx_agent_approval_outbox_dead (dead_lettered_at_unix_ms)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS shop_products (

@@ -31,8 +31,9 @@ const maxImageUploadBytes = 5 << 20
 
 type assetStore interface {
 	SaveAssetFile(ctx context.Context, asset data.AssetFile) error
-	FindTemporaryAssetForDelete(ctx context.Context, assetID, ownerUserID string) (*data.AssetFile, error)
-	MarkAssetDeleted(ctx context.Context, assetID, ownerUserID string) error
+	ClaimTemporaryAssetForDelete(ctx context.Context, assetID, ownerUserID string) (*data.AssetFile, error)
+	RestoreDeletingAsset(ctx context.Context, assetID, ownerUserID string) error
+	FinalizeDeletingAsset(ctx context.Context, assetID, ownerUserID string) error
 }
 
 type uploadHandler struct {
@@ -225,19 +226,33 @@ func (h *uploadHandler) handleImageDelete(w http.ResponseWriter, r *http.Request
 		writeUploadError(w, http.StatusBadRequest, r.Context(), fmt.Errorf("%w: asset id is required", apperr.ErrInvalidArgument), nil)
 		return
 	}
-	asset, err := h.store.FindTemporaryAssetForDelete(r.Context(), assetID, claims.UserID)
+	asset, err := h.store.ClaimTemporaryAssetForDelete(r.Context(), assetID, claims.UserID)
 	if err != nil {
 		writeUploadError(w, http.StatusNotFound, r.Context(), fmt.Errorf("%w: temporary asset not found or already attached", apperr.ErrNotFound), err)
 		return
 	}
-	if h.storage != nil {
-		if err := h.storage.DeleteObject(r.Context(), asset.ObjectKey); err != nil {
-			writeUploadError(w, http.StatusBadGateway, r.Context(), errors.New("delete image from object storage failed"), err)
-			return
-		}
+	if h.storage == nil {
+		cleanupCtx, cancelCleanup := context.WithTimeout(context.WithoutCancel(r.Context()), uploadStorageTimeout())
+		restoreErr := h.store.RestoreDeletingAsset(cleanupCtx, asset.ID, claims.UserID)
+		cancelCleanup()
+		writeUploadError(w, http.StatusServiceUnavailable, r.Context(), errors.New("image storage provider is not configured"), restoreErr)
+		return
 	}
-	if err := h.store.MarkAssetDeleted(r.Context(), asset.ID, claims.UserID); err != nil {
-		writeUploadError(w, http.StatusInternalServerError, r.Context(), errors.New("mark asset deleted failed"), err)
+	storageCtx, cancelStorage := context.WithTimeout(r.Context(), uploadStorageTimeout())
+	deleteErr := h.storage.DeleteObject(storageCtx, asset.ObjectKey)
+	cancelStorage()
+	if deleteErr != nil {
+		cleanupCtx, cancelCleanup := context.WithTimeout(context.WithoutCancel(r.Context()), uploadStorageTimeout())
+		restoreErr := h.store.RestoreDeletingAsset(cleanupCtx, asset.ID, claims.UserID)
+		cancelCleanup()
+		writeUploadError(w, http.StatusBadGateway, r.Context(), errors.New("delete image from object storage failed"), errors.Join(deleteErr, restoreErr))
+		return
+	}
+	cleanupCtx, cancelCleanup := context.WithTimeout(context.WithoutCancel(r.Context()), uploadStorageTimeout())
+	finalizeErr := h.store.FinalizeDeletingAsset(cleanupCtx, asset.ID, claims.UserID)
+	cancelCleanup()
+	if finalizeErr != nil {
+		writeUploadError(w, http.StatusInternalServerError, r.Context(), errors.New("mark asset deleted failed"), finalizeErr)
 		return
 	}
 	result := appsvc.OKResult(r.Context())

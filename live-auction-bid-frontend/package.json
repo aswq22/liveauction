@@ -2,6 +2,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
+    "test": "vitest run",
     "preview": "vite preview --host 0.0.0.0",
     "check:ui-debt": "../scripts/check-ui-debt.sh",
     "generate:api": "openapi-typescript ../live-auction-bid-backend/openapi/auction.openapi.json -o src/shared/api/generated/auction.schema.ts"
@@ -15,8 +16,13 @@
     "vite": "latest"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.6",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "openapi-typescript": "^7.13.0"
+    "jsdom": "30.0.1",
+    "openapi-typescript": "^7.13.0",
+    "vitest": "4.1.11"
   }
 }

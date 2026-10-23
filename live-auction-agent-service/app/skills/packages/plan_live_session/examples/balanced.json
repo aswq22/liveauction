@@ -1,0 +1,30 @@
+{
+  "kind": "final_proposal",
+  "proposal": {
+    "summary": "基于商家库存和历史证据的平衡型直播排品建议。",
+    "strategy": "balanced",
+    "estimated_duration_minutes": 5,
+    "lots": [
+      {
+        "lot_id": "<仅替换为 inventory.query 返回的 lot ID>",
+        "sequence": 1,
+        "role": "开场拍品",
+        "start_price_amount": 0,
+        "increment_amount": 0,
+        "duration_seconds": 300,
+        "extension_seconds": 30,
+        "reason": "历史成交数据不足，因此以零作为非负占位建议，并需要人工确认。"
+      }
+    ],
+    "evidence": [
+      {
+        "tool": "inventory.query",
+        "reference_id": "<与上述 lot_id 完全一致>",
+        "summary": "该拍品由商家库存查询返回。"
+      }
+    ],
+    "risks": [
+      "历史成交证据不足，价格和场次节奏需要人工确认。"
+    ]
+  }
+}

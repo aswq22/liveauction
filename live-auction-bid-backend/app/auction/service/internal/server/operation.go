@@ -79,6 +79,16 @@ func (r Readiness) WorkerSnapshot(ctx context.Context) map[string]any {
 			continue
 		}
 		status := provider.WorkerStatus(ctx)
+		// Operation endpoints expose stable health classifications, never raw
+		// transport, endpoint, provider, or credential-bearing error text.
+		if status.LastError != "" {
+			status.LastError = "WORKER_DEGRADED"
+		}
+		for index := range status.Shards {
+			if status.Shards[index].LastError != "" {
+				status.Shards[index].LastError = "WORKER_DEGRADED"
+			}
+		}
 		workers[status.Name] = status
 	}
 	return map[string]any{

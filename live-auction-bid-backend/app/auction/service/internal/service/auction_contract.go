@@ -10,6 +10,104 @@ import (
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 )
 
+func (s *AuctionService) GetAdminDashboard(ctx context.Context, req *v1.GetAdminDashboardRequest) (*v1.GetAdminDashboardReply, error) {
+	mainAccountID, err := s.requireCurrentQueryMainAccount(ctx, userbiz.PermissionRealtimeView, userbiz.PermissionLotViewAdmin, userbiz.PermissionOrderManage)
+	if err != nil {
+		return &v1.GetAdminDashboardReply{Result: ErrorResult(ctx, err)}, nil
+	}
+
+	query := auctionbiz.DashboardQuery{MainAccountID: mainAccountID}
+	if req != nil {
+		query.Range = auctionbiz.DashboardRange(req.GetRange())
+		query.Timezone = req.GetTimezone()
+		query.Sections = make([]auctionbiz.DashboardSection, 0, len(req.GetSections()))
+		for _, section := range req.GetSections() {
+			query.Sections = append(query.Sections, auctionbiz.DashboardSection(section))
+		}
+	}
+	snapshot, err := s.auction.GetDashboard(ctx, query)
+	if err != nil {
+		return &v1.GetAdminDashboardReply{Result: ErrorResult(ctx, err)}, nil
+	}
+	return dashboardSnapshotToProto(ctx, snapshot), nil
+}
+
+func dashboardSnapshotToProto(ctx context.Context, snapshot auctionbiz.DashboardSnapshot) *v1.GetAdminDashboardReply {
+	out := &v1.GetAdminDashboardReply{
+		Currency:         snapshot.Currency,
+		SnapshotAtUnixMs: snapshot.SnapshotAtUnixMs,
+		Range: &v1.DashboardRange{
+			Range:       string(snapshot.Range.Range),
+			Timezone:    snapshot.Range.Timezone,
+			StartUnixMs: snapshot.Range.StartUnixMs,
+			EndUnixMs:   snapshot.Range.EndUnixMs,
+		},
+		Summary: dashboardSummaryToProto(snapshot.Summary),
+		Funnel:  dashboardFunnelToProto(snapshot.Funnel),
+		OrderRisks: &v1.DashboardOrderRisks{
+			PendingPaymentCount: snapshot.OrderRisks.PendingPaymentCount,
+			ExpiringSoonCount:   snapshot.OrderRisks.ExpiringSoonCount,
+			ExpiredCount:        snapshot.OrderRisks.ExpiredCount,
+			PaymentFailedCount:  snapshot.OrderRisks.PaymentFailedCount,
+		},
+		Trend:          make([]*v1.DashboardTrendPoint, 0, len(snapshot.Trend)),
+		TopLots:        make([]*v1.DashboardTopLot, 0, len(snapshot.TopLots)),
+		Categories:     make([]*v1.DashboardCategoryPerformance, 0, len(snapshot.Categories)),
+		LotPerformance: make([]*v1.DashboardLotPerformance, 0, len(snapshot.LotPerformance)),
+		PartialErrors:  make([]*v1.DashboardPartialError, 0, len(snapshot.PartialErrors)),
+		Result:         okResult(ctx),
+	}
+	for _, point := range snapshot.Trend {
+		out.Trend = append(out.Trend, &v1.DashboardTrendPoint{StartUnixMs: point.StartUnixMs, EndUnixMs: point.EndUnixMs, PaidAmount: point.PaidAmount, PaidOrders: point.PaidOrders, Bidders: point.Bidders})
+	}
+	for _, lot := range snapshot.TopLots {
+		out.TopLots = append(out.TopLots, &v1.DashboardTopLot{LotId: lot.LotID, Title: lot.Title, Category: lot.Category, PaidAmount: lot.PaidAmount, FinalAmount: lot.FinalAmount, BidCount: lot.BidCount, ParticipantCount: lot.ParticipantCount})
+	}
+	for _, category := range snapshot.Categories {
+		out.Categories = append(out.Categories, &v1.DashboardCategoryPerformance{Category: category.Category, PaidAmount: category.PaidAmount, StartedLotCount: category.StartedLotCount, SettledLotCount: category.SettledLotCount, DealRate: dashboardRatioToProto(category.DealRate)})
+	}
+	for _, lot := range snapshot.LotPerformance {
+		out.LotPerformance = append(out.LotPerformance, &v1.DashboardLotPerformance{LotId: lot.LotID, Title: lot.Title, Category: lot.Category, Status: lot.Status, BidCount: lot.BidCount, ParticipantCount: lot.ParticipantCount, FinalAmount: lot.FinalAmount, PaidAmount: lot.PaidAmount, ConversionRate: dashboardRatioToProto(lot.ConversionRate)})
+	}
+	for _, partial := range snapshot.PartialErrors {
+		out.PartialErrors = append(out.PartialErrors, &v1.DashboardPartialError{Section: string(partial.Section), Code: partial.Code, Message: partial.Message})
+	}
+	return out
+}
+
+func dashboardSummaryToProto(summary auctionbiz.DashboardSummary) *v1.DashboardSummary {
+	return &v1.DashboardSummary{
+		GmvAmount:           summary.GMVAmount,
+		PaidAmount:          summary.PaidAmount,
+		PendingAmount:       summary.PendingAmount,
+		OrderCount:          summary.OrderCount,
+		CancelledOrderCount: summary.CancelledOrderCount,
+		ParticipantCount:    summary.ParticipantCount,
+		AverageDealAmount:   summary.AverageDealAmount,
+		PaymentRate:         dashboardRatioToProto(summary.PaymentRate),
+		DealRate:            dashboardRatioToProto(summary.DealRate),
+	}
+}
+
+func dashboardFunnelToProto(funnel auctionbiz.DashboardFunnel) *v1.DashboardFunnel {
+	return &v1.DashboardFunnel{
+		CreatedLotCount: funnel.CreatedLotCount,
+		ListedLotCount:  funnel.ListedLotCount,
+		StartedLotCount: funnel.StartedLotCount,
+		BidLotCount:     funnel.BidLotCount,
+		SettledLotCount: funnel.SettledLotCount,
+		PaidLotCount:    funnel.PaidLotCount,
+	}
+}
+
+func dashboardRatioToProto(ratio auctionbiz.DashboardRatio) *v1.DashboardRatio {
+	rate := 0.0
+	if ratio.Denominator != 0 {
+		rate = float64(ratio.Numerator) / float64(ratio.Denominator)
+	}
+	return &v1.DashboardRatio{Numerator: ratio.Numerator, Denominator: ratio.Denominator, Rate: rate}
+}
+
 func (s *AuctionService) GetLotResultView(ctx context.Context, req *v1.GetLotResultRequest) (*v1.GetLotResultReply, error) {
 	result, err := s.auction.GetLotResult(ctx, req.GetLotId(), lotResultViewerFromContext(ctx))
 	if err != nil {

@@ -2,9 +2,11 @@ package data
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
+	"gorm.io/gorm"
 	"live-auction-bid/backend/app/auction/service/internal/storage"
 )
 
@@ -51,14 +53,29 @@ func (w *AssetCleanupWorker) runOnce(ctx context.Context) {
 		return
 	}
 	for _, asset := range assets {
-		if err := w.storage.DeleteObject(ctx, asset.ObjectKey); err != nil {
+		claimed, err := w.store.ClaimExpiredTemporaryAssetForDelete(ctx, asset.ID)
+		if err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				slog.Error("asset cleanup claim failed", "asset_id", asset.ID, "error", err)
+			}
+			continue
+		}
+		operationCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
+		if err := w.storage.DeleteObject(operationCtx, claimed.ObjectKey); err != nil {
+			restoreErr := w.store.RestoreDeletingAssetByID(operationCtx, claimed.ID)
 			slog.Error("asset cleanup storage delete failed", "asset_id", asset.ID, "object_key", asset.ObjectKey, "error", err)
+			if restoreErr != nil {
+				slog.Error("asset cleanup restore claim failed", "asset_id", asset.ID, "error", restoreErr)
+			}
+			cancel()
 			continue
 		}
-		if err := w.store.MarkAssetDeletedByID(ctx, asset.ID); err != nil {
+		if err := w.store.FinalizeDeletingAssetByID(operationCtx, claimed.ID); err != nil {
 			slog.Error("asset cleanup mark deleted failed", "asset_id", asset.ID, "error", err)
+			cancel()
 			continue
 		}
+		cancel()
 		slog.Info("asset cleanup deleted expired temporary asset", "asset_id", asset.ID, "object_key", asset.ObjectKey)
 	}
 }

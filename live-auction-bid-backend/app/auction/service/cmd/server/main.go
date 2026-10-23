@@ -5,26 +5,48 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
+	"live-auction-bid/backend/app/auction/service/internal/agentapproval"
+	"live-auction-bid/backend/app/auction/service/internal/agentcontrol"
+	"live-auction-bid/backend/app/auction/service/internal/agentconversation"
+	"live-auction-bid/backend/app/auction/service/internal/agenttool"
 	"live-auction-bid/backend/app/auction/service/internal/aiassistant"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	shopbiz "live-auction-bid/backend/app/auction/service/internal/biz/shop"
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/cluster"
 	"live-auction-bid/backend/app/auction/service/internal/data"
+	"live-auction-bid/backend/app/auction/service/internal/observability"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/auth"
 	"live-auction-bid/backend/app/auction/service/internal/realtime"
 	"live-auction-bid/backend/app/auction/service/internal/searchindex"
 	"live-auction-bid/backend/app/auction/service/internal/server"
 	appsvc "live-auction-bid/backend/app/auction/service/internal/service"
 	"live-auction-bid/backend/app/auction/service/internal/storage"
+
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
+	os.Exit(applicationExitCode(run))
+}
+
+func applicationExitCode(run func() error) int {
+	if err := run(); err != nil {
+		log.Printf("auction server stopped with error: %v", err)
+		return 1
+	}
+	return 0
+}
+
+func run() error {
 	addr := os.Getenv("AUCTION_HTTP_ADDR")
 	if addr == "" {
 		addr = ":18080"
@@ -53,11 +75,14 @@ func main() {
 		SeedShopDefaults:                          getenvBool("AUCTION_SEED_SHOP_DEFAULTS", true),
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer store.Close()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
+	buyerRetrieval,closeBuyerRetrieval,err:=newProductionBuyerSearch(ctx,store)
+	if err!=nil{return err}
+	defer closeBuyerRetrieval()
 	buyerSearch, buyerEmbedder, buyerSearchWorker := newBuyerSearchFromEnv(ctx, store)
 	if buyerSearch != nil {
 		defer buyerSearch.Close()
@@ -71,6 +96,7 @@ func main() {
 	leaseRenewInterval := getenvDuration("AUCTION_WORKER_LEASE_RENEW_INTERVAL", 5*time.Second)
 	outboxWorker := data.NewEventOutboxWorker(store, 10*time.Second, 100)
 	outboxWorker.BindLease(leaseProvider, "auction:lease:event-outbox-worker", instanceID, leaseTTL, leaseRenewInterval)
+	agentApprovalOutboxWorker := data.NewAgentApprovalOutboxWorker(store, 2*time.Second, 100).WithObserver(observability.AgentApprovalOutboxObserver{})
 
 	authManager, err := auth.NewManager(auth.Config{
 		Secret:     os.Getenv("AUCTION_JWT_SECRET"),
@@ -79,38 +105,95 @@ func main() {
 		RefreshTTL: getenvDuration("AUCTION_REFRESH_TOKEN_TTL", auth.DefaultRefreshTTL),
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	imageStorage, err := newImageStorageFromEnv()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	assetCleanupWorker := data.NewAssetCleanupWorker(store, imageStorage, getenvDuration("AUCTION_TEMP_ASSET_CLEANUP_INTERVAL", time.Hour), 100)
 	assetCleanupWorker.Start(ctx)
 
 	userUsecase := userbiz.NewUsecase(store, authManager)
 	if err := bootstrapMainAccount(ctx, userUsecase); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	realtimeConfig, err := realtime.ConfigFromEnv(os.Getenv)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	hub := realtime.NewHub(nil, realtimeConfig)
 	hub.BindAuthManager(authManager)
+	barrageConfig := realtime.DefaultBarrageConfig()
+	barrageConfig.QueueCapacity = getenvInt("AUCTION_BARRAGE_QUEUE_CAPACITY", barrageConfig.QueueCapacity)
+	barrageConfig.Window = getenvDuration("AUCTION_BARRAGE_WINDOW", barrageConfig.Window)
+	barrageConfig.MaxActiveRoomsPerWindow = getenvInt("AUCTION_BARRAGE_MAX_ACTIVE_ROOMS_PER_WINDOW", barrageConfig.MaxActiveRoomsPerWindow)
+	barrageConfig.MaxPerRoomWindow = getenvInt("AUCTION_BARRAGE_MAX_PER_ROOM_WINDOW", barrageConfig.MaxPerRoomWindow)
+	barrageConfig.AdminReserved = getenvInt("AUCTION_BARRAGE_ADMIN_RESERVED", barrageConfig.AdminReserved)
+	barrageConfig.PaidReserved = getenvInt("AUCTION_BARRAGE_PAID_RESERVED", barrageConfig.PaidReserved)
+	barrageConfig.MaxUniquePerRoomWindow = getenvInt("AUCTION_BARRAGE_MAX_UNIQUE_PER_ROOM_WINDOW", barrageConfig.MaxUniquePerRoomWindow)
+	barrageConfig.MaxContentRunes = getenvInt("AUCTION_BARRAGE_MAX_CONTENT_RUNES", barrageConfig.MaxContentRunes)
+	barrageConfig.GlobalUserBurst = getenvFloat("AUCTION_BARRAGE_GLOBAL_USER_BURST", barrageConfig.GlobalUserBurst)
+	barrageConfig.GlobalUserRatePerSecond = getenvFloat("AUCTION_BARRAGE_GLOBAL_USER_RATE", barrageConfig.GlobalUserRatePerSecond)
+	barrageConfig.GlobalRateEntryCapacity = getenvInt("AUCTION_BARRAGE_GLOBAL_RATE_ENTRY_CAPACITY", barrageConfig.GlobalRateEntryCapacity)
+	barrageConfig.RoomUserBurst = getenvFloat("AUCTION_BARRAGE_ROOM_USER_BURST", barrageConfig.RoomUserBurst)
+	barrageConfig.RoomUserRatePerSecond = getenvFloat("AUCTION_BARRAGE_ROOM_USER_RATE", barrageConfig.RoomUserRatePerSecond)
+	barrageConfig.RoomRateEntryCapacity = getenvInt("AUCTION_BARRAGE_ROOM_RATE_ENTRY_CAPACITY", barrageConfig.RoomRateEntryCapacity)
+	barrageConfig.SensitiveWords = strings.Split(os.Getenv("AUCTION_BARRAGE_SENSITIVE_WORDS"), ",")
+	barrageService, err := realtime.NewBarrageService(barrageConfig, hub, data.NewBarrageModeration(store))
+	if err != nil {
+		return err
+	}
+	hub.BindBarrageService(barrageService)
+	hub.BindPublicRoomValidator(data.NewPublicRoomValidator(store))
+	go barrageService.Run(ctx)
 	eventPublisher, closeRealtimeBus := newRealtimePublisherFromEnv(ctx, hub, instanceID, redisAddr, redisPassword)
 	defer closeRealtimeBus()
 	store.SetEventStreamer(eventPublisher)
 	outboxWorker.Start(ctx)
+	agentApprovalOutboxWorker.Start(ctx)
+	defer agentApprovalOutboxWorker.Stop()
 	paymentProvider, err := auction.NewPaymentProviderFromName(os.Getenv("AUCTION_PAYMENT_PROVIDER"))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	auctionUsecase := auction.NewAuctionUsecase(store, store, store, eventPublisher).
 		SetPaymentProvider(paymentProvider).
 		SetSyncRuntimeProjection(getenvBool("AUCTION_BID_SYNC_PROJECTION", false)).
 		SetBidDBGuardMode(getenv("AUCTION_BID_DB_GUARD_MODE", "runtime-first"))
+	agentRunRepository := data.NewAgentRunRepository(store)
+	agentGatewayHandler, runtimeClient, agentGatewayService, err := newAgentGatewayFromEnv(agentRunRepository, authManager)
+	if err != nil {
+		return err
+	}
+	if runtimeClient != nil {
+		defer runtimeClient.Close()
+		log.Printf("auction agent Runtime client configured")
+	} else {
+		log.Printf("auction agent Runtime client unavailable; Agent HTTP routes remain enabled")
+	}
+	if err := agentGatewayService.Start(ctx); err != nil {
+		return err
+	}
+	defer agentGatewayService.Close()
+	agentConversationService, err := agentconversation.NewService(data.NewAgentConversationRepository(store), store, agentGatewayService)
+	if err != nil {
+		return err
+	}
+	agentApprovalService := agentapproval.NewService(data.NewAgentConversationRepository(store), store).WithObserver(observability.AgentApprovalObserver{})
+	agentGatewayHandler = server.NewAgentAdminHTTPHandler(agentGatewayHandler, server.NewAgentSessionHTTPHandler(agentConversationService, authManager, server.AgentHTTPOptions{}, agentApprovalService))
+	var agentToolServer lifecycleServer
+	if config, enabled := agentToolConfigFromEnv(); enabled {
+		agentToolService, err := agenttool.NewService(config.Token, agentRunRepository, auctionUsecase)
+		if err != nil {
+			return err
+		}
+		agentToolServer = server.NewAgentToolGRPCServer(config.Addr, agentToolService)
+		log.Printf("auction agent Tool gRPC enabled on %s", config.Addr)
+	} else {
+		log.Printf("auction agent Tool gRPC disabled: AUCTION_INTERNAL_SERVICE_TOKEN is not configured")
+	}
 	var runtimeProjectionWorker *data.RuntimeProjectionWorker
 	if getenvBool("AUCTION_RUNTIME_PROJECTION_WORKER_ENABLED", true) {
 		runtimeProjectionWorker = data.NewRuntimeProjectionWorker(
@@ -129,8 +212,10 @@ func main() {
 	clusterStatus := newClusterStatusFromEnv()
 	hub.BindSnapshotProvider(auctionUsecase)
 	auctionService := appsvc.NewAuctionService(auctionUsecase, hub).
+		SetCurrentUserProvider(userUsecase).
 		SetAIAssistant(aiassistant.NewFromEnv(os.Getenv)).
 		SetBuyerSearch(buyerSearch, buyerEmbedder).
+		SetBuyerRetrieval(buyerRetrieval).
 		SetVerboseBidLog(getenvBool("AUCTION_VERBOSE_BID_LOG", false))
 	userService := appsvc.NewUserService(userUsecase)
 	shopUsecase := shopbiz.NewUsecase(store)
@@ -143,7 +228,7 @@ func main() {
 		HTTPAddr:       addr,
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -157,7 +242,7 @@ func main() {
 		Store:          store,
 		Outbox:         outboxWorker,
 		AuctionClose:   auctionCloseWorker,
-		WorkerStatuses: workerStatusProviders(outboxWorker, auctionCloseWorker, runtimeProjectionWorker),
+		WorkerStatuses: workerStatusProviders(outboxWorker, agentApprovalOutboxWorker, auctionCloseWorker, runtimeProjectionWorker),
 		Cluster:        clusterStatus,
 		Consul:         consulRegistration,
 	}
@@ -165,12 +250,123 @@ func main() {
 		readiness.RuntimeProjection = runtimeProjectionWorker
 		readiness.ProjectionMetrics = runtimeProjectionWorker
 	}
-	httpServer := server.NewHTTPServer(addr, auctionService, userService, shopService, orderService, hub, readiness, authManager, authManager.Middleware(), imageStorage, store)
+	httpServer := server.NewHTTPServer(addr, auctionService, userService, shopService, orderService, hub, readiness, authManager, authManager.Middleware(), imageStorage, store, agentGatewayHandler)
 
-	log.Printf("auction backend listening on %s via kratos http", addr)
-	if err := httpServer.Start(ctx); err != nil {
-		log.Fatal(err)
+	servers := []lifecycleServer{withPreStop(httpServer, hub.Shutdown)}
+	if agentToolServer != nil {
+		servers = append(servers, agentToolServer)
 	}
+	log.Printf("auction backend listening on %s via kratos http", addr)
+	err = runServers(ctx, servers...)
+	if err != nil {
+		stopSignals()
+	}
+	return err
+}
+
+type agentToolConfig struct {
+	Addr  string
+	Token string
+}
+
+type agentRuntimeConfig struct {
+	Address string
+	Token   string
+}
+
+func newAgentGatewayFromEnv(repository agentcontrol.GatewayRepository, authManager *auth.Manager) (http.Handler, agentcontrol.RuntimeClient, *agentcontrol.Service, error) {
+	var runtimeClient agentcontrol.RuntimeClient
+	if config, enabled := agentRuntimeConfigFromEnv(); enabled {
+		client, err := agentcontrol.NewGRPCRuntimeClient(agentcontrol.RuntimeClientConfig{
+			Address:       config.Address,
+			Token:         config.Token,
+			UnaryTimeout:  getenvDuration("AUCTION_AGENT_RUNTIME_TIMEOUT", 5*time.Second),
+			StreamTimeout: getenvDuration("AUCTION_AGENT_RUNTIME_STREAM_TIMEOUT", 30*time.Minute),
+		})
+		if err == nil {
+			runtimeClient = client
+		}
+	}
+	service, err := agentcontrol.NewService(repository, runtimeClient)
+	if err != nil {
+		if runtimeClient != nil {
+			_ = runtimeClient.Close()
+		}
+		return nil, nil, nil, err
+	}
+	return server.NewAgentHTTPHandler(service, authManager, server.AgentHTTPOptions{}), runtimeClient, service, nil
+}
+
+func agentRuntimeConfigFromEnv() (agentRuntimeConfig, bool) {
+	address := strings.TrimSpace(os.Getenv("AUCTION_AGENT_RUNTIME_ADDR"))
+	token := strings.TrimSpace(os.Getenv("AUCTION_INTERNAL_SERVICE_TOKEN"))
+	if address == "" || token == "" {
+		return agentRuntimeConfig{}, false
+	}
+	return agentRuntimeConfig{Address: address, Token: token}, true
+}
+
+func agentToolConfigFromEnv() (agentToolConfig, bool) {
+	token := strings.TrimSpace(os.Getenv("AUCTION_INTERNAL_SERVICE_TOKEN"))
+	if token == "" {
+		return agentToolConfig{}, false
+	}
+	return agentToolConfig{
+		Addr:  getenv("AUCTION_AGENT_TOOL_GRPC_ADDR", ":19082"),
+		Token: token,
+	}, true
+}
+
+type lifecycleServer interface {
+	Start(context.Context) error
+	Stop(context.Context) error
+}
+
+type preStopServer struct {
+	lifecycleServer
+	beforeStop func(context.Context) error
+}
+
+func withPreStop(server lifecycleServer, beforeStop func(context.Context) error) lifecycleServer {
+	return &preStopServer{lifecycleServer: server, beforeStop: beforeStop}
+}
+
+func (s *preStopServer) Stop(ctx context.Context) error {
+	beforeStopErr := s.beforeStop(ctx)
+	transportStopErr := s.lifecycleServer.Stop(ctx)
+	return errors.Join(beforeStopErr, transportStopErr)
+}
+
+// runServers starts all transports concurrently. A signal or any transport
+// failure cancels the shared lifecycle and gracefully stops every transport.
+func runServers(ctx context.Context, servers ...lifecycleServer) error {
+	group, groupCtx := errgroup.WithContext(ctx)
+	for _, transport := range servers {
+		transport := transport
+		group.Go(func() error {
+			err := transport.Start(groupCtx)
+			if groupCtx.Err() != nil {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			return errors.New("server stopped unexpectedly")
+		})
+	}
+	group.Go(func() error {
+		<-groupCtx.Done()
+		stopCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		var stopErrors []error
+		for _, transport := range servers {
+			if err := transport.Stop(stopCtx); err != nil {
+				stopErrors = append(stopErrors, err)
+			}
+		}
+		return errors.Join(stopErrors...)
+	})
+	return group.Wait()
 }
 
 func newRealtimePublisherFromEnv(ctx context.Context, hub *realtime.Hub, instanceID, redisAddr, redisPassword string) (*realtime.Publisher, func()) {
@@ -300,6 +496,7 @@ func (s runtimeClusterStatus) ClusterSnapshot(context.Context) map[string]any {
 }
 
 func newBuyerSearchFromEnv(ctx context.Context, source searchindex.DocumentSource) (*searchindex.PGVectorIndex, *searchindex.EmbeddingClient, *searchindex.SyncWorker) {
+	if getenvBool("AUCTION_BUYER_SEARCH_ENABLED",false){return nil,nil,nil}
 	provider := strings.ToLower(strings.TrimSpace(os.Getenv("AUCTION_SEARCH_PROVIDER")))
 	dsn := strings.TrimSpace(os.Getenv("AUCTION_SEARCH_PG_DSN"))
 	if provider == "" && dsn == "" {
@@ -415,6 +612,18 @@ func getenvInt(key string, fallback int) int {
 	parsed, err := strconv.Atoi(value)
 	if err != nil {
 		log.Fatalf("invalid %s integer: %v", key, err)
+	}
+	return parsed
+}
+
+func getenvFloat(key string, fallback float64) float64 {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		log.Fatalf("invalid %s number: %v", key, err)
 	}
 	return parsed
 }

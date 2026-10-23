@@ -115,6 +115,7 @@ export const AUCTION_EVENT_TYPE = {
   AUCTION_CLOSED: 'AUCTION_EVENT_TYPE_AUCTION_CLOSED',
   ORDER_CREATED: 'AUCTION_EVENT_TYPE_ORDER_CREATED',
   PAYMENT_SUCCESS: 'AUCTION_EVENT_TYPE_PAYMENT_SUCCESS',
+  BARRAGE_BATCH: 'BARRAGE_BATCH',
   CLIENT_HEARTBEAT: 'CLIENT_HEARTBEAT',
   SERVER_HEARTBEAT: 'SERVER_HEARTBEAT',
 } as const;
@@ -363,6 +364,7 @@ export type AuctionRoomState = {
   currentLot: Lot | null;
   ranking: RankingItem[];
   recentBids: BidEvent[];
+  barrages: BarrageMessage[];
   serverTimeUnixMs: number | string;
   serverTimeReceivedAtUnixMs?: number;
   lastEventId?: string;
@@ -371,6 +373,16 @@ export type AuctionRoomState = {
   orders: OrderSummary[];
   payment?: PaymentSummary;
   paidLotIds: Record<string, boolean>;
+};
+
+export type BarrageMessage = {
+  id: string;
+  roomId: string;
+  displayName: string;
+  content: string;
+  priority: number;
+  createdAtMs: number;
+  count: number;
 };
 
 export type PlaceBidRequest = {
@@ -408,6 +420,8 @@ export type AuctionSocketEvent = {
   ranking?: RankingItem[];
   bid?: BidEvent;
   recentBids?: BidEvent[];
+  windowMs?: number;
+  messages?: BarrageMessage[];
   rejectReason?: string;
   reason?: string;
   serverTimeUnixMs?: number | string;

@@ -39,6 +39,11 @@ export type DepositHold = {
   addressId: string;
 };
 
+export type SubmitBarrageReply = {
+  accepted: boolean;
+  id: string;
+};
+
 function withQuery(path: string, query?: object): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query || {})) {
@@ -76,6 +81,20 @@ export async function listRoomLots(roomId: string): Promise<Lot[]> {
   });
 
   return Array.isArray(reply.lots) ? reply.lots.map(normalizeLot).filter((lot) => Boolean(lot.id)) : [];
+}
+
+export async function submitBarrage(roomId: string, content: string): Promise<SubmitBarrageReply> {
+  const normalizedContent = content.trim();
+  if (!normalizedContent) throw new Error('请输入弹幕内容');
+  if (Array.from(normalizedContent).length > 100) throw new Error('弹幕最多 100 个字');
+  const reply = await apiRequest<SubmitBarrageReply>({
+    path: `/api/realtime/rooms/${encodeURIComponent(roomId)}/barrages`,
+    method: 'POST',
+    auth: 'required',
+    operation: 'submitBarrage',
+    body: { content: normalizedContent },
+  });
+  return { accepted: Boolean(reply.accepted), id: String(reply.id || '') };
 }
 
 export async function placeBid(lotId: string, payload: PlaceBidRequest): Promise<PlaceBidResponse> {

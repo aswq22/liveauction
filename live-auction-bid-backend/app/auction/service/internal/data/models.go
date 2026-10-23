@@ -4,7 +4,7 @@ import "time"
 
 type AuctionRoomModel struct {
 	ID                  string `gorm:"column:id;type:varchar(64);primaryKey"`
-	MainAccountID       string `gorm:"column:main_account_id;type:varchar(64);not null;uniqueIndex:uidx_room_main_account;index:idx_room_main_status,priority:1"`
+	MainAccountID       string `gorm:"column:main_account_id;type:varchar(64);not null;index:idx_room_main_status,priority:1"`
 	Name                string `gorm:"column:name;type:varchar(128);not null"`
 	Platform            string `gorm:"column:platform;type:varchar(32);not null;default:'douyin'"`
 	PlatformRoomID      string `gorm:"column:platform_room_id;type:varchar(128);not null;default:'';index:idx_platform_room"`
@@ -449,3 +449,19 @@ type AssetFileModel struct {
 }
 
 func (AssetFileModel) TableName() string { return "asset_files" }
+
+// AgentCandidateAssetModel is a draft-only reference. It deliberately does
+// not change asset_files attachment state before proposal approval.
+type AgentCandidateAssetModel struct {
+	CandidateID     string `gorm:"column:candidate_id;type:varchar(64);primaryKey"`
+	SessionID       string `gorm:"column:session_id;type:varchar(64);not null;index:idx_agent_candidate_asset_session"`
+	AssetID         string `gorm:"column:asset_id;type:varchar(64);not null;uniqueIndex:uidx_agent_candidate_asset_asset"`
+	TenantID        string `gorm:"column:tenant_id;type:varchar(64);not null;index:idx_agent_candidate_asset_tenant"`
+	OperatorID      string `gorm:"column:operator_id;type:varchar(64);not null"`
+	CreatedAtUnixMs int64  `gorm:"column:created_at_unix_ms;not null"`
+	UpdatedAtUnixMs int64  `gorm:"column:updated_at_unix_ms;not null"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (AgentCandidateAssetModel) TableName() string { return "agent_candidate_assets" }

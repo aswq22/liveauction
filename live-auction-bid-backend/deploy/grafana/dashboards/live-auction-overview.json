@@ -606,7 +606,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(auction_ws_connections{job=~\"$job\",room_id=~\"$room_id\"})",
+          "expr": "sum(auction_ws_connections{job=~\"$job\"})",
           "legendFormat": "connections",
           "refId": "A"
         }
@@ -1999,7 +1999,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (scope) (auction_ws_connections{job=~\"$job\",room_id=~\"$room_id\"})",
+          "expr": "sum by (scope) (auction_ws_connections{job=~\"$job\"})",
           "legendFormat": "{{scope}}",
           "refId": "A"
         }
@@ -2866,7 +2866,7 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(auction_ws_connections{job=~\"$job\"}, room_id)",
+        "definition": "label_values(auction_active_lots{job=~\"$job\"}, room_id)",
         "hide": 0,
         "includeAll": true,
         "label": "Room",
@@ -2874,7 +2874,7 @@
         "name": "room_id",
         "options": [],
         "query": {
-          "query": "label_values(auction_ws_connections{job=~\"$job\"}, room_id)",
+          "query": "label_values(auction_active_lots{job=~\"$job\"}, room_id)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,

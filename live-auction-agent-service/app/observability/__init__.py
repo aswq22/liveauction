@@ -1,0 +1,1 @@
+"""Safe runtime observability helpers."""

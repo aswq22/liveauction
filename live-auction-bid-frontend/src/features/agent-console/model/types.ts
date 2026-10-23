@@ -1,0 +1,38 @@
+export type AgentRunStatus = 'CREATED' | 'PLANNING' | 'COLLECTING_CONTEXT' | 'GENERATING_PROPOSAL' | 'VERIFYING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+export type AgentSessionStatus = 'COLLECTING_INPUT' | 'READY_FOR_REVIEW' | 'APPLYING' | 'APPLIED' | 'NEEDS_REVISION' | 'CANCELLED';
+export type AgentRunType = 'SESSION_PLAN' | 'LOT_DRAFT_ASSIST';
+export type AgentFieldSource = 'USER' | 'AI' | 'SYSTEM' | 'EXISTING';
+export type AgentRequiredInput = 'TITLE' | 'START_PRICE' | 'DURATION' | 'MAIN_IMAGE' | 'AMBIGUOUS_CANDIDATE';
+export type AgentSession = { id: string; roomId: string; status: AgentSessionStatus; version: number; activeSnapshotVersion: number; conversationSummary: string; createdAtUnixMs: number; updatedAtUnixMs: number };
+export type AgentMessage = { sessionId: string; seq: number; role: 'USER' | 'ASSISTANT'; content: string; runId: string; createdAtUnixMs: number };
+export type AgentRun = { runId: string; runType?: AgentRunType; goal: string; status: AgentRunStatus; errorCode?: string; errorMessage?: string; createdAtUnixMs: number; updatedAtUnixMs: number };
+export type AgentRunEvent = { runId: string; seq: number; type: string; message: string; payload: Record<string, unknown> };
+export type CandidateDraft = { title: string; startPriceAmount: number; durationSeconds: number; mainImageAssetId: string; mainImageUrl: string; minIncrementAmount: number; capPriceAmount?: number | null; category: string; description: string; tags: string[]; stock: number; antiSnipeWindowSeconds: number; antiSnipeExtendSeconds: number; maxExtendCount: number; depositAmount: number };
+export type AgentCandidate = { id: string; sourceType: 'EXISTING' | 'NEW'; existingLotId?: string; existingLotReadVersion?: number; startPriceSpecified: boolean; draft: CandidateDraft };
+export type AgentDraftCandidate = { candidate: AgentCandidate; position: number; selectedByDefault: boolean; fieldSourcesJSON: string; validationJSON: string; provenanceVersion: number; version: number; createdAtUnixMs: number; updatedAtUnixMs: number };
+export type AgentSessionAggregate = { session: AgentSession; messages: AgentMessage[]; candidates: AgentDraftCandidate[]; activeRun: AgentRun | null; lastRunType?: AgentRunType; appliedExecution: RecoveredExecution | null };
+export type SendMessageInput = { expectedVersion: number; content: string; runType: 'SESSION_PLAN' | 'LOT_DRAFT_ASSIST'; idempotencyKey: string };
+export type CandidatePatchFields = { [Field in keyof CandidateDraft]?: CandidateDraft[Field] | null };
+export type CandidatePatchInput = { expectedSessionVersion: number; expectedCandidateVersion: number; fields: CandidatePatchFields };
+export type BindImageInput = { expectedSessionVersion: number; expectedCandidateVersion: number; assetId: string };
+export type ReviewInput = { expectedSessionVersion: number; selectedCandidateIds: string[]; orderedCandidateIds: string[] };
+export type SnapshotFieldSource = { field: keyof CandidateDraft; source: AgentFieldSource };
+export type SnapshotCandidate = { candidateId: string; candidateVersion: number; sourceType: 'EXISTING' | 'NEW'; existingLotId?: string; existingLotReadVersion?: number; draft: Omit<CandidateDraft, 'mainImageUrl'>; fieldSources: SnapshotFieldSource[]; assetIds: string[] };
+export type ReviewSnapshot = { snapshotVersion: number; contentHash: string; candidates: SnapshotCandidate[] };
+export type ApplyTarget = 'QUEUE' | 'INVENTORY_ONLY';
+export type ApplyInput = { snapshotVersion: number; contentHash: string; selectedCandidateIds: string[]; orderedCandidateIds: string[]; idempotencyKey: string; target: ApplyTarget };
+export type Execution = { executionId: string; createdLotIds: string[]; queuedLots: Array<{ lotId: string; queuePosition: number }>; target: ApplyTarget };
+export type RecoveredExecution = Omit<Execution, 'queuedLots'> & { snapshotVersion: number; queuedLots: Array<{ candidateId: string; sourceType: 'NEW' | 'EXISTING'; lotId: string; queuePosition: number }> };
+export type AgentEventStreamOptions = { afterSeq?: number; activeRunId?: string; signal: AbortSignal; onEvent: (event: AgentRunEvent) => void };
+export interface AgentApi {
+  createSession(roomId: string, signal?: AbortSignal): Promise<AgentSession>;
+  getSession(id: string, signal?: AbortSignal): Promise<AgentSessionAggregate>;
+  sendMessage(id: string, input: SendMessageInput, signal?: AbortSignal): Promise<AgentRun>;
+  cancelSession(id: string, expectedVersion: number, signal?: AbortSignal): Promise<void>;
+  patchCandidate(sessionId: string, candidateId: string, input: CandidatePatchInput, signal?: AbortSignal): Promise<AgentSessionAggregate>;
+  bindCandidateImage(sessionId: string, candidateId: string, input: BindImageInput, signal?: AbortSignal): Promise<AgentSessionAggregate>;
+  createReviewSnapshot(sessionId: string, input: ReviewInput, signal?: AbortSignal): Promise<ReviewSnapshot>;
+  getReviewSnapshot(sessionId: string, snapshotVersion: number, signal?: AbortSignal): Promise<ReviewSnapshot>;
+  apply(sessionId: string, input: ApplyInput, signal?: AbortSignal): Promise<Execution>;
+  streamSessionEvents(sessionId: string, options: AgentEventStreamOptions): Promise<void>;
+}

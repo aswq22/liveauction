@@ -5,13 +5,12 @@ import { isOrderClosedStatus, isOrderPaidStatus } from '../../order/model/orderS
 
 const ORDER_PAYMENT_WINDOW_MS = 30 * 60 * 1000;
 
-export type AuctionUiStatus = '今日队列' | '草稿' | '准备中' | '待开拍' | '竞拍中' | '延时中' | '已落锤' | '已取消' | '异常' | '历史拍品';
+export type AuctionUiStatus = '今日队列' | '待开拍' | '排队中' | '竞拍中' | '延时中' | '已落锤' | '已取消' | '异常' | '历史拍品';
 
 export const LOT_STATUS_FILTERS: Array<{ label: string; value: LotStatus | '' }> = [
   { label: '全部状态', value: '' },
-  { label: '草稿', value: 'LOT_STATUS_DRAFT' },
-  { label: '准备中', value: 'LOT_STATUS_READY' },
-  { label: '待开拍', value: 'LOT_STATUS_QUEUED' },
+  { label: '待开拍（未排品）', value: 'LOT_STATUS_READY' },
+  { label: '排队中', value: 'LOT_STATUS_QUEUED' },
   { label: '竞拍中', value: 'LOT_STATUS_LIVE' },
   { label: '延时中', value: 'LOT_STATUS_EXTENDED' },
   { label: '已落锤', value: 'LOT_STATUS_SETTLED' },
@@ -34,15 +33,14 @@ export const HISTORY_LOT_STATUS_FILTERS: Array<{ label: string; value: LotStatus
 
 export const LIBRARY_LOT_STATUS_FILTERS: Array<{ label: string; value: LotStatus | '' }> = [
   { label: '全部资产', value: '' },
-  { label: '草稿', value: 'LOT_STATUS_DRAFT' },
-  { label: '准备中', value: 'LOT_STATUS_READY' },
+  { label: '待开拍', value: 'LOT_STATUS_READY' },
 ];
 
 const lotStatusMeta: Record<string, { label: string; tone: StudioTone; ui: AuctionUiStatus }> = {
-  LOT_STATUS_UNSPECIFIED: { label: '未知', tone: 'neutral', ui: '准备中' },
-  LOT_STATUS_DRAFT: { label: '草稿', tone: 'info', ui: '草稿' },
-  LOT_STATUS_READY: { label: '准备中', tone: 'info', ui: '准备中' },
-  LOT_STATUS_QUEUED: { label: '待开拍', tone: 'warning', ui: '待开拍' },
+  LOT_STATUS_UNSPECIFIED: { label: '未知', tone: 'neutral', ui: '待开拍' },
+  LOT_STATUS_DRAFT: { label: '待开拍', tone: 'info', ui: '待开拍' },
+  LOT_STATUS_READY: { label: '待开拍', tone: 'info', ui: '待开拍' },
+  LOT_STATUS_QUEUED: { label: '排队中', tone: 'warning', ui: '排队中' },
   LOT_STATUS_LIVE: { label: '竞拍中', tone: 'success', ui: '竞拍中' },
   LOT_STATUS_EXTENDED: { label: '延时中', tone: 'warning', ui: '延时中' },
   LOT_STATUS_SETTLED: { label: '已落锤', tone: 'warning', ui: '已落锤' },
@@ -59,9 +57,9 @@ export function lotStatusTone(status?: string): StudioTone {
 }
 
 export function uiStatusOfLot(lot: Pick<Lot, 'status' | 'playbookStage'>): AuctionUiStatus {
-  if (lot.status === 'LOT_STATUS_QUEUED') return '待开拍';
-  if (lot.status === 'LOT_STATUS_DRAFT' && lot.playbookStage === 'PLAYBOOK_STAGE_WARM_UP') return '草稿';
-  return lotStatusMeta[lot.status]?.ui ?? '准备中';
+  if (lot.status === 'LOT_STATUS_QUEUED') return '排队中';
+  if (lot.status === 'LOT_STATUS_DRAFT' && lot.playbookStage === 'PLAYBOOK_STAGE_WARM_UP') return '待开拍';
+  return lotStatusMeta[lot.status]?.ui ?? '待开拍';
 }
 
 export function isSettlementLot(lot: Pick<Lot, 'status' | 'settledAtUnixMs' | 'winnerUserId'>) {
@@ -79,7 +77,11 @@ export function canSettleLot(lot: Pick<Lot, 'leadingUserId'> | null | undefined)
 }
 
 export function isQueueReadyLot(lot: Pick<Lot, 'status' | 'queueStatus' | 'playbookStage'>) {
-  return ['草稿', '准备中', '待开拍'].includes(uiStatusOfLot(lot));
+  return lot.status === 'LOT_STATUS_DRAFT'
+    || lot.status === 'LOT_STATUS_READY'
+    || lot.status === 'LOT_STATUS_QUEUED'
+    || lot.queueStatus === 'LOT_QUEUE_STATUS_QUEUED'
+    || lot.queueStatus === 'LOT_QUEUE_STATUS_NEXT';
 }
 
 export function isPreStartCancellableLot(lot: Pick<Lot, 'status'>) {

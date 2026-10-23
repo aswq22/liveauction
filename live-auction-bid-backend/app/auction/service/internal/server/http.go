@@ -26,7 +26,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func NewHTTPServer(addr string, auction *appsvc.AuctionService, users *appsvc.UserService, shop *appsvc.ShopService, orders *appsvc.OrderService, hub *realtime.Hub, health HealthChecker, authManager *auth.Manager, authMiddleware middleware.Middleware, imageStorage storage.StorageProvider, assetStore assetStore) *httptransport.Server {
+func NewHTTPServer(addr string, auction *appsvc.AuctionService, users *appsvc.UserService, shop *appsvc.ShopService, orders *appsvc.OrderService, hub *realtime.Hub, health HealthChecker, authManager *auth.Manager, authMiddleware middleware.Middleware, imageStorage storage.StorageProvider, assetStore assetStore, agentHandlers ...http.Handler) *httptransport.Server {
 	middlewares := []middleware.Middleware{recovery.Recovery()}
 	if authMiddleware != nil {
 		middlewares = append(middlewares, authMiddleware)
@@ -34,7 +34,7 @@ func NewHTTPServer(addr string, auction *appsvc.AuctionService, users *appsvc.Us
 	srv := httptransport.NewServer(
 		httptransport.Address(addr),
 		httptransport.Middleware(middlewares...),
-		httptransport.Filter(localDevCORSFilter, requestctx.HTTPMiddleware),
+		httptransport.Filter(localDevCORSFilter, requestctx.HTTPMiddleware,newSearchAdmissionFilter(strings.Split(os.Getenv("AUCTION_SEARCH_TRUSTED_PROXIES"),","))),
 		httptransport.ErrorEncoder(resultEnvelopeErrorEncoder),
 	)
 
@@ -43,6 +43,13 @@ func NewHTTPServer(addr string, auction *appsvc.AuctionService, users *appsvc.Us
 	registerUserHTTP(srv, users)
 	registerRealtimeHTTP(srv, hub)
 	registerUploadHTTP(srv, authManager, assetStore, imageStorage)
+	for _, handler := range agentHandlers {
+		if handler != nil {
+			registerAgentHTTP(srv, handler)
+			registerAgentSessionHTTP(srv, handler)
+			break
+		}
+	}
 	registerLocalAssetsHTTP(srv)
 	registerOperationHTTP(srv, health)
 
@@ -51,6 +58,31 @@ func NewHTTPServer(addr string, auction *appsvc.AuctionService, users *appsvc.Us
 
 func registerAuctionHTTP(srv *httptransport.Server, auction *appsvc.AuctionService, authManager *auth.Manager) {
 	v1.RegisterAuctionServiceHTTPServer(srv, auction)
+	srv.HandleFunc("/api/admin/lots/dequeue", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		ctx := auctionHTTPAuthContext(r, authManager)
+		var req struct {
+			LotID string `json:"lotId"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSONResult(w, appsvc.ErrorResult(ctx, fmt.Errorf("%w: invalid request body", apperr.ErrInvalidArgument)), nil)
+			return
+		}
+		req.LotID = strings.TrimSpace(req.LotID)
+		if req.LotID == "" {
+			writeJSONResult(w, appsvc.ErrorResult(ctx, fmt.Errorf("%w: lot id is required", apperr.ErrInvalidArgument)), nil)
+			return
+		}
+		reply, err := auction.DequeueLot(ctx, req.LotID)
+		if err != nil {
+			writeJSONResult(w, appsvc.ErrorResult(ctx, err), nil)
+			return
+		}
+		writeJSONResult(w, reply.GetResult(), map[string]any{"lot": reply.GetLot()})
+	})
 	srv.HandleFunc("/api/admin/lots/relist", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusMethodNotAllowed)

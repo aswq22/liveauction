@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Gavel, Package, Radio, RefreshCw, Search, ShieldAlert, ShieldCheck, Trophy, Wifi, X } from 'lucide-react';
-import { cancelLot, getRoomSnapshot, listAdminLots, settleLot, startLot, type AdminLotsQuery } from '../auction/api/auctionApi';
+import { cancelLot, dequeueLot, getRoomSnapshot, listAdminLots, queueLot, settleLot, startLot, type AdminLotsQuery } from '../auction/api/auctionApi';
 import { CURRENT_LOT_STATUS_FILTERS, canSettleLot, isLiveLot, isPreStartCancellableLot, isQueueReadyLot, isRemovedFromCurrentQueueLot, isSettlementLot, lotStatusLabel, lotStatusTone, settlementOutcomeDisplay, uiStatusOfLot } from '../../entities/auction/model/auctionStatus';
 import type { Lot, RoomSnapshot } from '../../shared/api/types';
 import { resultMessage } from '../../shared/api/result';
@@ -58,6 +58,13 @@ export function AuctionManagementPage({ roomId, roomName = roomId }: Props) {
   const startAuction = async (lot: Lot) => {
     setError('');
     try {
+      if (currentLot && currentLot.id !== lot.id) {
+        const queued = await queueLot(lot.id);
+        setLots((current) => upsertLot(current, queued.lot));
+        showToast({ tone: 'success', title: '已加入等待队列', description: `${queued.lot.title} · 队列位置 ${queued.queuePosition ?? queued.lot.queuePosition}` });
+        await syncLots();
+        return;
+      }
       const updated = await startLot(lot.id);
       setLots((current) => upsertLot(current, updated));
       showToast({ tone: 'success', title: '竞拍已开始', description: updated.title });
@@ -65,7 +72,7 @@ export function AuctionManagementPage({ roomId, roomName = roomId }: Props) {
     } catch (e) {
       const message = resultMessage(e);
       setError(message);
-      showToast({ tone: 'danger', title: '开始竞拍失败', description: message });
+      showToast({ tone: 'danger', title: currentLot ? '加入等待队列失败' : '开始竞拍失败', description: message });
     }
   };
 
@@ -86,6 +93,20 @@ export function AuctionManagementPage({ roomId, roomName = roomId }: Props) {
       const message = resultMessage(e);
       setError(message);
       showToast({ tone: 'danger', title: '落锤成交失败', description: message });
+    }
+  };
+
+  const dequeueAuction = async (lot: Lot) => {
+    setError('');
+    try {
+      const updated = await dequeueLot(lot.id);
+      setLots((current) => upsertLot(current, updated));
+      showToast({ tone: 'success', title: '已移出等待队列', description: `${updated.title}已退回待开拍库存` });
+      await syncLots();
+    } catch (e) {
+      const message = resultMessage(e);
+      setError(message);
+      showToast({ tone: 'danger', title: '移出等待队列失败', description: message });
     }
   };
 
@@ -163,7 +184,7 @@ export function AuctionManagementPage({ roomId, roomName = roomId }: Props) {
     </section>
     <section className="queueTopCards">
       <QueueFocusCard lot={currentLot} snapshot={snapshot} onCancel={setCancelTarget} />
-      <NextLotCard lot={nextLot} disabled={Boolean(currentLot)} onStart={startAuction} />
+      <NextLotCard lot={nextLot} hasCurrentLot={Boolean(currentLot)} onStart={startAuction} onDequeue={dequeueAuction} />
       <article className="queueTopCard health"><header><span><ShieldCheck size={18} />队列健康</span><StudioBadge tone={socket.status === 'connected' ? 'success' : 'warning'}>{wsState}</StudioBadge></header><div className="queueHealthGrid"><span>返回总数：<b>{total}</b></span><span>本页待拍：<b>{metrics.waiting}</b></span><span>本页落锤：<b>{metrics.settled}</b></span><span>本页异常：<b>{metrics.abnormal}</b></span></div><p>当前直播间 {roomName}</p></article>
     </section>
     <section className="auctionMgmtStats">
@@ -187,7 +208,7 @@ export function AuctionManagementPage({ roomId, roomName = roomId }: Props) {
         </div>
       </div>
     </StudioCard>
-    {loading ? <StudioTableSkeleton className="auctionMgmtSkeleton" rows={DEFAULT_PAGE_SIZE} columns={7} /> : error && !lots.length ? <StudioErrorState className="auctionMgmtEmpty" icon={<AlertTriangle size={40} />} title="本场拍品队列加载失败" description={error} action={<StudioButton type="button" variant="secondary" icon={<RefreshCw size={15} />} onClick={() => void syncLots()}>重试加载</StudioButton>} /> : lots.length ? <section className="auctionQueueList" aria-label="本场拍品队列列表">{lots.map((lot, index) => <AuctionQueueRow key={lot.id} lot={lot} position={((currentPage - 1) * DEFAULT_PAGE_SIZE) + index + 1} currentLot={currentLot} snapshot={snapshot} onDetail={setSelectedLot} onCancel={setCancelTarget} onStart={startAuction} onSettle={settleAuction} />)}</section> : <StudioEmptyState icon={<Package size={34} />} title="暂无拍品" description="当前筛选条件下没有拍品，可以添加新拍品或清空筛选。" action={<a className="studioButton studioButton-primary studioButton-md" href="/admin/auctions/create">添加拍品</a>} />}
+    {loading ? <StudioTableSkeleton className="auctionMgmtSkeleton" rows={DEFAULT_PAGE_SIZE} columns={7} /> : error && !lots.length ? <StudioErrorState className="auctionMgmtEmpty" icon={<AlertTriangle size={40} />} title="本场拍品队列加载失败" description={error} action={<StudioButton type="button" variant="secondary" icon={<RefreshCw size={15} />} onClick={() => void syncLots()}>重试加载</StudioButton>} /> : lots.length ? <section className="auctionQueueList" aria-label="本场拍品队列列表">{lots.map((lot, index) => <AuctionQueueRow key={lot.id} lot={lot} position={((currentPage - 1) * DEFAULT_PAGE_SIZE) + index + 1} currentLot={currentLot} snapshot={snapshot} onDetail={setSelectedLot} onCancel={setCancelTarget} onStart={startAuction} onDequeue={dequeueAuction} onSettle={settleAuction} />)}</section> : <StudioEmptyState icon={<Package size={34} />} title="暂无拍品" description="当前筛选条件下没有拍品，可以添加新拍品或清空筛选。" action={<a className="studioButton studioButton-primary studioButton-md" href="/admin/auctions/create">添加拍品</a>} />}
     {selectedLot ? <AuctionDetailDrawer lot={selectedLot} snapshot={snapshot} onClose={() => setSelectedLot(null)} /> : null}
     {cancelTarget ? <CancelAuctionDialog lot={cancelTarget} onClose={() => setCancelTarget(null)} onConfirm={confirmCancel} /> : null}
   </section>;
@@ -214,21 +235,22 @@ function QueueFocusCard({ lot, snapshot, onCancel }: { lot: Lot | null; snapshot
   return <article className="queueTopCard current isLive"><header><span><Radio size={18} />当前竞拍</span><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></header><h3>{lot.title}</h3><div className="queuePriceLine"><span>当前价</span><b>{formatMoneyText(lot.currentPrice)}</b><small>{formatAuctionLeftMs(getLotLeftMs(lot, snapshot?.serverTimeUnixMs), 'queue')}</small></div><p>领先用户：{lot.leadingNickname || '暂无'} · 出价 {snapshot?.recentBids?.length || 0} 次</p><div className="queueTopActions"><a className="studioButton studioButton-primary studioButton-sm" href={`/admin/auctions/${lot.id}/control`}>进入中控台</a><button type="button" className="studioButton studioButton-danger studioButton-sm" onClick={() => onCancel(lot)}>异常取消</button></div></article>;
 }
 
-function NextLotCard({ lot, disabled, onStart }: { lot: Lot | null; disabled: boolean; onStart: (lot: Lot) => void }) {
+function NextLotCard({ lot, hasCurrentLot, onStart, onDequeue }: { lot: Lot | null; hasCurrentLot: boolean; onStart: (lot: Lot) => void; onDequeue: (lot: Lot) => void }) {
   if (!lot) return <article className="queueTopCard next isEmpty"><header><span><Gavel size={18} />下一件拍品</span><StudioBadge tone="neutral">暂无</StudioBadge></header><h3>待开拍为空</h3><p>添加拍品后会进入本场队列。</p></article>;
-  return <article className="queueTopCard next hasNext"><header><span><Gavel size={18} />下一件拍品</span><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></header><h3>{lot.title}</h3><div className="queueRulePills"><span>起拍：<b>{formatMoneyText(lot.rule.startPrice)}</b></span><span>加价：<b>{formatMoneyText(lot.rule.minIncrement)}</b></span><span>封顶：<b>{formatMoneyText(lot.rule.capPrice)}</b></span></div><p>预计 {formatDurationText(lot.rule.durationSeconds)} · 等待运营确认开拍节奏</p><div className="queueTopActions"><button type="button" className="studioButton studioButton-secondary studioButton-sm" disabled={disabled} onClick={() => void onStart(lot)}>{disabled ? '等待当前结束' : '开始竞拍'}</button></div></article>;
+  const queued = lot.status === 'LOT_STATUS_QUEUED';
+  return <article className="queueTopCard next hasNext"><header><span><Gavel size={18} />下一件拍品</span><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge></header><h3>{lot.title}</h3><div className="queueRulePills"><span>起拍：<b>{formatMoneyText(lot.rule.startPrice)}</b></span><span>加价：<b>{formatMoneyText(lot.rule.minIncrement)}</b></span><span>封顶：<b>{formatMoneyText(lot.rule.capPrice)}</b></span></div><p>预计 {formatDurationText(lot.rule.durationSeconds)} · {queued ? `当前队列位置 #${lot.queuePosition}` : hasCurrentLot ? '加入后等待当前拍品结束' : '等待运营确认开拍节奏'}</p><div className="queueTopActions">{queued && !hasCurrentLot ? <button type="button" className="studioButton studioButton-primary studioButton-sm" onClick={() => void onStart(lot)}>开始竞拍</button> : null}<button type="button" className="studioButton studioButton-secondary studioButton-sm" onClick={() => void (queued ? onDequeue(lot) : onStart(lot))}>{queued ? '移出队列' : hasCurrentLot ? '加入等待队列' : '开始竞拍'}</button></div></article>;
 }
 
-function AuctionQueueRow({ lot, position, currentLot, snapshot, onDetail, onCancel, onStart, onSettle }: { lot: Lot; position: number; currentLot: Lot | null; snapshot: RoomSnapshot | null; onDetail: (lot: Lot) => void; onCancel: (lot: Lot) => void; onStart: (lot: Lot) => void; onSettle: (lot: Lot) => void }) {
+function AuctionQueueRow({ lot, position, currentLot, snapshot, onDetail, onCancel, onStart, onDequeue, onSettle }: { lot: Lot; position: number; currentLot: Lot | null; snapshot: RoomSnapshot | null; onDetail: (lot: Lot) => void; onCancel: (lot: Lot) => void; onStart: (lot: Lot) => void; onDequeue: (lot: Lot) => void; onSettle: (lot: Lot) => void }) {
   const status = uiStatusOfLot(lot);
   const isCurrent = Boolean(currentLot?.id === lot.id || isLiveLot(lot));
   const isNext = !isCurrent && isQueueReadyLot(lot);
   const liveLot = currentLot?.id === lot.id ? currentLot : lot;
   const settleReady = canSettleQueueLot(liveLot, snapshot);
   return <article className={`queueRowCard ${isCurrent ? 'isCurrent' : ''} ${isNext ? 'isNext' : ''} ${status === '已取消' ? 'isCancelled' : ''}`} onClick={() => onDetail(lot)}>
-    <div className="queueRowLeft"><span className="queueNo">#{String(position).padStart(2, '0')}</span><img src={lot.imageUrl || '/vite.svg'} alt={lot.title} /><div><h3>{lot.title}</h3><div className="queueTags"><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge><span>竞拍 ID {lot.id}</span><span>规则 v{lot.version || 1}</span></div></div></div>
+    <div className="queueRowLeft"><span className="queueNo">#{String(position).padStart(2, '0')}</span><img src={lot.imageUrl || '/vite.svg'} alt={lot.title} /><div><h3>{lot.title}</h3><div className="queueTags"><StudioBadge tone={lotStatusTone(lot.status)}>{lotStatusLabel(lot.status)}</StudioBadge>{lot.status === 'LOT_STATUS_QUEUED' && lot.queuePosition ? <span>队列位置 #{lot.queuePosition}</span> : null}<span>竞拍 ID {lot.id}</span><span>规则 v{lot.version || 1}</span></div></div></div>
     <div className="queueRowMiddle"><span><b>状态进度：</b>{statusProgressText(lot, snapshot)}</span><span><b>开拍时间：</b>{formatDateTimeText(lot.startedAtUnixMs, '未开拍')}</span><span><b>起拍 / 加价：</b>{formatMoneyText(lot.rule.startPrice)} / {formatMoneyText(lot.rule.minIncrement)}</span><span><b>封顶 / 时长：</b>{formatMoneyText(lot.rule.capPrice)} / {formatDurationText(lot.rule.durationSeconds)}</span></div>
-    <div className="queueRowRight">{orderStateText(lot)}<div className="auctionRowActions" onClick={(e) => e.stopPropagation()}><button type="button" className="queueActionPlain" onClick={() => onDetail(lot)}>详情</button>{isQueueReadyLot(lot) ? <button type="button" className="queueActionPrimary" disabled={Boolean(currentLot)} onClick={() => void onStart(lot)}>开始竞拍</button> : null}{isLiveLot(lot) ? <><a className="queueActionPrimary" href={`/admin/auctions/${lot.id}/control`}>进入中控</a><button type="button" className="queueActionPrimary" title={settleReady ? '落锤成交' : SETTLE_BLOCKED_MESSAGE} onClick={() => void onSettle(lot)}>落锤成交</button><button type="button" className="queueActionDanger danger" onClick={() => onCancel(lot)}>异常取消</button></> : null}{isPreStartCancellableLot(lot) ? <button type="button" className="queueActionDanger danger" onClick={() => onCancel(lot)}>取消拍品</button> : null}{isSettlementLot(lot) ? <a className="queueActionPrimary" href="/admin/orders">成交处理</a> : null}</div></div>
+    <div className="queueRowRight">{orderStateText(lot)}<div className="auctionRowActions" onClick={(e) => e.stopPropagation()}><button type="button" className="queueActionPlain" onClick={() => onDetail(lot)}>详情</button>{lot.status === 'LOT_STATUS_QUEUED' ? <>{!currentLot ? <button type="button" className="queueActionPrimary" onClick={() => void onStart(lot)}>开始竞拍</button> : null}<button type="button" className="queueActionPlain" onClick={() => void onDequeue(lot)}>移出队列</button></> : isQueueReadyLot(lot) ? <button type="button" className="queueActionPrimary" onClick={() => void onStart(lot)}>{currentLot ? '加入等待队列' : '开始竞拍'}</button> : null}{isLiveLot(lot) ? <><a className="queueActionPrimary" href={`/admin/auctions/${lot.id}/control`}>进入中控</a><button type="button" className="queueActionPrimary" title={settleReady ? '落锤成交' : SETTLE_BLOCKED_MESSAGE} onClick={() => void onSettle(lot)}>落锤成交</button><button type="button" className="queueActionDanger danger" onClick={() => onCancel(lot)}>异常取消</button></> : null}{isPreStartCancellableLot(lot) ? <button type="button" className="queueActionDanger danger" onClick={() => onCancel(lot)}>取消拍品</button> : null}{isSettlementLot(lot) ? <a className="queueActionPrimary" href="/admin/orders">成交处理</a> : null}</div></div>
   </article>;
 }
 

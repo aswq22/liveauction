@@ -38,6 +38,7 @@ type AuctionUsecase struct {
 	payments        PaymentRepository
 	deposits        DepositRepository
 	addresses       DeliveryAddressRepository
+	dashboard       DashboardRepository
 	eventsStore     EventRepository
 	events          EventPublisher
 	paymentProvider PaymentProvider
@@ -187,6 +188,9 @@ func NewAuctionUsecase(lots LotRepository, bids BidRepository, eventStore EventR
 	if repo, ok := lots.(DeliveryAddressRepository); ok {
 		uc.addresses = repo
 	}
+	if repo, ok := lots.(DashboardRepository); ok {
+		uc.dashboard = repo
+	}
 	if repo, ok := bids.(AuctionRuntime); ok {
 		uc.runtime = repo
 	} else if repo, ok := lots.(AuctionRuntime); ok {
@@ -198,6 +202,17 @@ func NewAuctionUsecase(lots LotRepository, bids BidRepository, eventStore EventR
 		uc.projector = repo
 	}
 	return uc
+}
+
+func (uc *AuctionUsecase) GetDashboard(ctx context.Context, query DashboardQuery) (DashboardSnapshot, error) {
+	if uc.dashboard == nil {
+		return DashboardSnapshot{}, errors.New("dashboard repository is required")
+	}
+	normalized, err := NormalizeDashboardQuery(query)
+	if err != nil {
+		return DashboardSnapshot{}, err
+	}
+	return uc.dashboard.GetDashboard(ctx, normalized)
 }
 
 func (uc *AuctionUsecase) SetPaymentProvider(provider PaymentProvider) *AuctionUsecase {
@@ -283,36 +298,12 @@ func (uc *AuctionUsecase) CloseStalePreStartLots(ctx context.Context, nowMs int6
 	if nowMs <= 0 {
 		return CloseExpiredSummary{}, fmt.Errorf("%w: now ms is required", apperr.ErrInvalidArgument)
 	}
-	if uc.expiredLots == nil {
-		return CloseExpiredSummary{}, errors.New("expired lot repository is required")
-	}
-	if limit <= 0 {
-		limit = 100
-	}
-	stalePreStartLots, err := uc.expiredLots.ListStalePreStart(ctx, nowMs, localAuctionDayStartMs(nowMs), limit)
-	if err != nil {
-		return CloseExpiredSummary{}, err
-	}
-	summary := CloseExpiredSummary{Scanned: len(stalePreStartLots)}
-	for _, lot := range stalePreStartLots {
-		if lot == nil || lot.Id == "" {
-			continue
-		}
-		cancelled, err := uc.cancelStalePreStartLot(ctx, lot.Id, nowMs)
-		if err != nil {
-			if apperr.IsLotVersionConflict(err) {
-				summary.Conflicts++
-				continue
-			}
-			return summary, err
-		}
-		if !cancelled {
-			continue
-		}
-		summary.Closed++
-		summary.Cancelled++
-	}
-	return summary, nil
+	// READY lots are durable merchant inventory. Crossing a business-day boundary
+	// must not silently remove an unstarted item from future Agent planning.
+	_ = uc
+	_ = ctx
+	_ = limit
+	return CloseExpiredSummary{}, nil
 }
 
 func localAuctionDayStartMs(nowMs int64) int64 {
@@ -415,6 +406,20 @@ func (uc *AuctionUsecase) QueueLot(ctx context.Context, lotID, mainAccountID, ow
 		return nil, 0, err
 	}
 	return proto.Clone(lot).(*v1.Lot), queuePosition, nil
+}
+
+func (uc *AuctionUsecase) DequeueLot(ctx context.Context, lotID, mainAccountID string) (*v1.Lot, error) {
+	if strings.TrimSpace(lotID) == "" {
+		return nil, errors.New("lot id is required")
+	}
+	lot, events, err := uc.lots.DequeueLot(ctx, lotID, mainAccountID, clock.NowMs())
+	if err != nil {
+		return nil, err
+	}
+	if err := uc.broadcast(ctx, events...); err != nil {
+		return nil, err
+	}
+	return proto.Clone(lot).(*v1.Lot), nil
 }
 
 func (uc *AuctionUsecase) RelistLot(ctx context.Context, sourceLotID, mainAccountID, ownerUserID string) (*v1.Lot, int32, error) {

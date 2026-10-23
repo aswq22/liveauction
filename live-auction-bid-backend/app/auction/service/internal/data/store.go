@@ -48,6 +48,9 @@ type Store struct {
 	runtimeProjectionBackpressureLagMs        int64
 	seedRBACDefaults                          bool
 	seedShopDefaults                          bool
+	// beforeQueueRoomStateLock is a test-only synchronization observer. It is
+	// nil in production and never changes transaction behavior.
+	beforeQueueRoomStateLock func(*gorm.DB)
 }
 
 func NewStore(ctx context.Context, cfg Config) (*Store, error) {
@@ -176,8 +179,13 @@ func (s *Store) Close() error {
 }
 
 func (s *Store) migrate(ctx context.Context) error {
+	if err := s.prepareExistingAgentRunSchema(ctx); err != nil {
+		return err
+	}
+	if err := s.migrateAuctionRooms(ctx); err != nil {
+		return err
+	}
 	if err := s.db.WithContext(ctx).AutoMigrate(
-		&AuctionRoomModel{},
 		&AuctionRoomStateModel{},
 		&AuctionLotModel{},
 		&AuctionBidModel{},
@@ -194,6 +202,7 @@ func (s *Store) migrate(ctx context.Context) error {
 		&UserDeliveryAddressModel{},
 		&AuctionEventModel{},
 		&AssetFileModel{},
+		&AgentCandidateAssetModel{},
 		&AuctionUserModel{},
 		&AuctionRoleModel{},
 		&AuctionPermissionModel{},
@@ -201,6 +210,15 @@ func (s *Store) migrate(ctx context.Context) error {
 		&AuctionRolePermissionModel{},
 		&AuctionUserPermissionModel{},
 		&AuctionUserSessionModel{},
+		&AgentRunModel{},
+		&AgentRunEventModel{},
+		&AgentSessionModel{},
+		&AgentSessionMessageModel{},
+		&AgentDraftCandidateModel{},
+		&AgentApprovalSnapshotModel{},
+		&AgentProposalExecutionModel{},
+		&AgentApprovalAuditModel{},
+		&AgentApprovalOutboxModel{},
 	); err != nil {
 		return err
 	}
@@ -216,6 +234,68 @@ func (s *Store) migrate(ctx context.Context) error {
 		return s.EnsureShopSeeds(ctx)
 	}
 	return nil
+}
+
+func (s *Store) migrateAuctionRooms(ctx context.Context) error {
+	db := s.db.WithContext(ctx)
+	if err := db.AutoMigrate(&AuctionRoomModel{}); err != nil {
+		return err
+	}
+	// Older deployments restricted merchants to one room. Removing the model
+	// tag does not remove an existing index, so explicitly migrate it away.
+	migrator := db.Migrator()
+	if migrator.HasIndex(&AuctionRoomModel{}, "uidx_room_main_account") {
+		return migrator.DropIndex(&AuctionRoomModel{}, "uidx_room_main_account")
+	}
+	return nil
+}
+
+func (s *Store) prepareExistingAgentRunSchema(ctx context.Context) error {
+	migrator := s.db.WithContext(ctx).Migrator()
+	if !migrator.HasTable(&AgentRunModel{}) {
+		return nil
+	}
+	projectionCompleteAdded := false
+	for _, field := range []string{"IdempotencyKey", "LastRuntimeSourceSeq", "ProjectionComplete"} {
+		if !migrator.HasColumn(&AgentRunModel{}, field) {
+			if err := migrator.AddColumn(&AgentRunModel{}, field); err != nil {
+				return err
+			}
+			if field == "ProjectionComplete" {
+				projectionCompleteAdded = true
+			}
+		}
+	}
+	if err := s.db.WithContext(ctx).Exec(
+		"UPDATE agent_runs SET idempotency_key = CONCAT('legacy-', id) WHERE idempotency_key = '' OR idempotency_key IS NULL",
+	).Error; err != nil {
+		return err
+	}
+	if projectionCompleteAdded {
+		if err := backfillLegacyAgentRunProjectionCompletion(ctx, s.db); err != nil {
+			return err
+		}
+	}
+	for _, field := range []string{"SessionID", "RunType", "SessionVersion", "TurnInputJSON", "TurnResultJSON"} {
+		if !migrator.HasColumn(&AgentRunModel{}, field) {
+			if err := migrator.AddColumn(&AgentRunModel{}, field); err != nil {
+				return err
+			}
+		}
+	}
+	if migrator.HasTable(&AgentRunEventModel{}) && !migrator.HasColumn(&AgentRunEventModel{}, "RuntimeSourceSeq") {
+		if err := migrator.AddColumn(&AgentRunEventModel{}, "RuntimeSourceSeq"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func backfillLegacyAgentRunProjectionCompletion(ctx context.Context, db *gorm.DB) error {
+	return db.WithContext(ctx).Exec(
+		"UPDATE agent_runs SET projection_complete = TRUE WHERE status IN (?,?,?) AND projection_complete = FALSE",
+		"COMPLETED", "FAILED", "CANCELLED",
+	).Error
 }
 
 func (s *Store) ensureVisualDefaults(ctx context.Context) error {

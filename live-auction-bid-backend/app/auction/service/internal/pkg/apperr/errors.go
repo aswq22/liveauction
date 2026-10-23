@@ -28,6 +28,14 @@ const (
 var ErrLotVersionConflict = errors.New("lot version conflict")
 
 var (
+	ErrAgentSessionVersionConflict = errors.New("agent session version conflict")
+	ErrAgentRequiredInputMissing   = errors.New("agent required input missing")
+	ErrAgentImageAssetInvalid      = errors.New("agent image asset invalid")
+	ErrAgentReviewSnapshotStale    = errors.New("agent review snapshot stale")
+	ErrAgentCandidateChanged       = errors.New("agent candidate changed")
+	ErrAgentBatchApplyFailed       = errors.New("agent batch apply failed")
+	ErrAgentBatchAlreadyApplied    = errors.New("agent batch already applied")
+	ErrConflict                     = errors.New("conflict")
 	ErrInvalidArgument              = errors.New("invalid argument")
 	ErrBidRejected                  = errors.New(string(CodeBidRejected))
 	ErrBidTooLow                    = errors.New(string(CodeBidTooLow))

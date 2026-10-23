@@ -310,13 +310,14 @@ type PaymentReconcileSummary struct {
 }
 
 type LotQuery struct {
-	Page          int          `json:"page"`
-	PageSize      int          `json:"pageSize"`
-	MainAccountID string       `json:"mainAccountId,omitempty"`
-	Status        v1.LotStatus `json:"status,omitempty"`
-	View          string       `json:"view,omitempty"`
-	Keyword       string       `json:"keyword,omitempty"`
-	RoomID        string       `json:"roomId,omitempty"`
+	Page             int          `json:"page"`
+	PageSize         int          `json:"pageSize"`
+	MainAccountID    string       `json:"mainAccountId,omitempty"`
+	Status           v1.LotStatus `json:"status,omitempty"`
+	View             string       `json:"view,omitempty"`
+	Keyword          string       `json:"keyword,omitempty"`
+	RoomID           string       `json:"roomId,omitempty"`
+	OrderByUpdatedAt bool         `json:"orderByUpdatedAt,omitempty"`
 }
 
 type LotList struct {

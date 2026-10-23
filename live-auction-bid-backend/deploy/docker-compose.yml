@@ -7,6 +7,9 @@ services:
     container_name: live-auction-bid-backend
     environment:
       AUCTION_HTTP_ADDR: ":18080"
+      AUCTION_AGENT_RUNTIME_ADDR: "${AUCTION_AGENT_RUNTIME_ADDR:-auction-agent:19081}"
+      AUCTION_AGENT_TOOL_GRPC_ADDR: "${AUCTION_AGENT_TOOL_GRPC_ADDR:-:19082}"
+      AUCTION_INTERNAL_SERVICE_TOKEN: "${AUCTION_INTERNAL_SERVICE_TOKEN:-local-agent-service-token-change-me}"
       AUCTION_ENV: "${AUCTION_ENV:-dev}"
       AUCTION_WS_ALLOWED_ORIGINS: "${AUCTION_WS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174}"
       AUCTION_WS_ALLOW_MISSING_ORIGIN: "${AUCTION_WS_ALLOW_MISSING_ORIGIN:-true}"
@@ -36,11 +39,16 @@ services:
       AUCTION_REALTIME_BUS_RABBITMQ_QUEUE: "${AUCTION_REALTIME_BUS_RABBITMQ_QUEUE:-auction.realtime.websocket}"
       AUCTION_REALTIME_BUS_RABBITMQ_PREFETCH: "${AUCTION_REALTIME_BUS_RABBITMQ_PREFETCH:-100}"
       AUCTION_SEARCH_PROVIDER: "${AUCTION_SEARCH_PROVIDER:-}"
+      AUCTION_BUYER_SEARCH_ENABLED: "${AUCTION_BUYER_SEARCH_ENABLED:-false}"
+      AUCTION_SEARCH_CURSOR_KEY: "${AUCTION_SEARCH_CURSOR_KEY:-}"
+      AUCTION_SEARCH_MAX_CONCURRENT: "${AUCTION_SEARCH_MAX_CONCURRENT:-128}"
+      AUCTION_SEARCH_TRUSTED_PROXIES: "${AUCTION_SEARCH_TRUSTED_PROXIES:-}"
       AUCTION_SEARCH_PG_DSN: "${AUCTION_SEARCH_PG_DSN:-}"
       AUCTION_SEARCH_SYNC_INTERVAL: "${AUCTION_SEARCH_SYNC_INTERVAL:-5m}"
       AUCTION_SEARCH_SYNC_BATCH_LIMIT: "${AUCTION_SEARCH_SYNC_BATCH_LIMIT:-500}"
       AUCTION_SEARCH_HIDDEN_RETENTION: "${AUCTION_SEARCH_HIDDEN_RETENTION:-168h}"
       AUCTION_EMBEDDING_PROVIDER: "${AUCTION_EMBEDDING_PROVIDER:-dashscope}"
+      AUCTION_EMBEDDING_PROVIDER_VERSION: "${AUCTION_EMBEDDING_PROVIDER_VERSION:-}"
       AUCTION_EMBEDDING_BASE_URL: "${AUCTION_EMBEDDING_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}"
       AUCTION_EMBEDDING_MODEL: "${AUCTION_EMBEDDING_MODEL:-text-embedding-v4}"
       AUCTION_EMBEDDING_DIMENSIONS: "${AUCTION_EMBEDDING_DIMENSIONS:-1024}"
@@ -77,6 +85,8 @@ services:
       AUCTION_TEMP_ASSET_CLEANUP_INTERVAL: "${AUCTION_TEMP_ASSET_CLEANUP_INTERVAL:-1h}"
     ports:
       - "18080:18080"
+    expose:
+      - "19082"
     volumes:
       - ./local-assets:/data/live-auction-assets
     depends_on:
@@ -159,7 +169,7 @@ services:
   pgvector:
     image: pgvector/pgvector:pg16
     container_name: live-auction-pgvector
-    profiles: ["search"]
+    profiles: ["search", "agent"]
     environment:
       POSTGRES_DB: live_auction_search
       POSTGRES_USER: auction_search
@@ -177,6 +187,44 @@ services:
       - live-auction-pgvector:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U auction_search -d live_auction_search"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - live-auction
+
+  auction-agent:
+    build:
+      context: ../..
+      dockerfile: live-auction-agent-service/Dockerfile
+    image: live-auction-agent-service:local
+    container_name: live-auction-agent-service
+    profiles: ["agent"]
+    environment:
+      AUCTION_AGENT_GRPC_ADDR: ":19081"
+      AUCTION_TOOL_GRPC_ADDR: "${AUCTION_TOOL_GRPC_ADDR:-auction-backend:19082}"
+      AUCTION_INTERNAL_SERVICE_TOKEN: "${AUCTION_INTERNAL_SERVICE_TOKEN:-local-agent-service-token-change-me}"
+      AGENT_DATABASE_DSN: "${AGENT_DATABASE_DSN:-postgresql://auction_search:auction_search_dev@pgvector:5432/live_auction_search}"
+      AGENT_MODEL_PROVIDER: "${AGENT_MODEL_PROVIDER:-mock}"
+      AGENT_MODEL_BASE_URL: "${AGENT_MODEL_BASE_URL:-}"
+      AGENT_MODEL_NAME: "${AGENT_MODEL_NAME:-}"
+      AGENT_MODEL_API_KEY: "${AGENT_MODEL_API_KEY:-}"
+      AGENT_MODEL_TOKEN_LIMIT_FIELD: "${AGENT_MODEL_TOKEN_LIMIT_FIELD:-max_completion_tokens}"
+      AGENT_MODEL_TIMEOUT_SECONDS: "${AGENT_MODEL_TIMEOUT_SECONDS:-30}"
+      AGENT_TOKEN_BUDGET: "${AGENT_TOKEN_BUDGET:-8192}"
+    expose:
+      - "19081"
+    depends_on:
+      auction-backend:
+        condition: service_healthy
+      pgvector:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import grpc; grpc.channel_ready_future(grpc.insecure_channel('127.0.0.1:19081')).result(timeout=3)
       interval: 10s
       timeout: 5s
       retries: 10

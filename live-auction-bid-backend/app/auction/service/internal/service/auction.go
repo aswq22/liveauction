@@ -9,6 +9,7 @@ import (
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/aiassistant"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
+	"live-auction-bid/backend/app/auction/service/internal/biz/buyersearch"
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
 	"live-auction-bid/backend/app/auction/service/internal/observability"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
@@ -23,10 +24,12 @@ import (
 type AuctionService struct {
 	v1.UnimplementedAuctionServiceServer
 	auction       *auction.AuctionUsecase
+	currentUser   CurrentUserProvider
 	presence      RoomPresenceProvider
 	ai            *aiassistant.Assistant
 	buyerSearch   *searchindex.PGVectorIndex
 	buyerEmbedder *searchindex.EmbeddingClient
+	buyerRetrieval *buyersearch.Service
 	verboseBidLog bool
 }
 
@@ -131,6 +134,18 @@ func (s *AuctionService) RelistLot(ctx context.Context, lotID string) (*v1.Queue
 		return &v1.QueueLotReply{Result: ErrorResult(ctx, err), Lot: lot}, nil
 	}
 	return &v1.QueueLotReply{Result: okResult(ctx), Lot: lot, QueuePosition: queuePosition}, nil
+}
+
+func (s *AuctionService) DequeueLot(ctx context.Context, lotID string) (*v1.GetLotReply, error) {
+	_, mainAccountID, err := requirePermissionMainAccount(ctx, userbiz.PermissionLotQueue)
+	if err != nil {
+		return &v1.GetLotReply{Result: ErrorResult(ctx, err)}, nil
+	}
+	lot, err := s.auction.DequeueLot(ctx, lotID, mainAccountID)
+	if err != nil {
+		return &v1.GetLotReply{Result: ErrorResult(ctx, err), Lot: lot}, nil
+	}
+	return &v1.GetLotReply{Result: okResult(ctx), Lot: lot}, nil
 }
 
 func (s *AuctionService) GetLot(ctx context.Context, req *v1.GetLotRequest) (*v1.GetLotReply, error) {

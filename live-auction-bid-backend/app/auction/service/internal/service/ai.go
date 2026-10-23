@@ -55,6 +55,12 @@ func (s *AuctionService) ConsultBuyer(ctx context.Context, req *v1.BuyerConsultR
 		RiskPreference: req.GetRiskPreference(),
 	}
 	intent := parseBuyerQuery(aiReq.Query, aiReq.Budget)
+	if s.buyerRetrieval!=nil{
+		searchReply,e:=s.SearchBuyerLots(ctx,&v1.BuyerSearchRequest{Query:aiReq.Query,RoomId:aiReq.RoomID,PageSize:8,MaxPriceAmount:buyerBudgetPointer(aiReq.Budget)})
+		if e!=nil{return &v1.BuyerConsultReply{Result:buyerSearchResult(ctx,e)},nil};if searchReply.GetResult().GetCode()!=0{return &v1.BuyerConsultReply{Result:searchReply.Result},nil}
+		candidates:=[]aiassistant.LotCandidate{};for _,hit:=range searchReply.Hits{lot:=hit.GetLot();if aiReq.LotID!=""&&lot.GetId()!=aiReq.LotID{continue};candidates=append(candidates,aiassistant.LotCandidate{Type:"lot",LotID:lot.GetId(),RoomID:lot.GetRoomId(),Title:lot.GetTitle(),Status:lot.GetStatus().String(),CurrentPrice:lot.GetCurrentPrice(),Href:hit.GetHref(),Reason:hit.GetMatchReason(),ImageURL:lot.GetImageUrl()})}
+		reply,e:=s.aiAssistant().ConsultBuyer(ctx,aiReq,aiassistant.BuyerConsultContext{Candidates:candidates});if e!=nil{return &v1.BuyerConsultReply{Result:ErrorResult(ctx,e)},nil};return buyerConsultReplyToProto(ctx,reply),nil
+	}
 	if aiReq.Budget <= 0 {
 		aiReq.Budget = intent.Budget
 	}
@@ -71,6 +77,8 @@ func (s *AuctionService) ConsultBuyer(ctx context.Context, req *v1.BuyerConsultR
 	}
 	return buyerConsultReplyToProto(ctx, reply), nil
 }
+
+func buyerBudgetPointer(amount int64)*int64{if amount<=0{return nil};return &amount}
 
 func (s *AuctionService) BuyerSuggestions(ctx context.Context, limit int) (aiassistant.BuyerSuggestionReply, error) {
 	limit = normalizeBuyerSuggestionLimit(limit)

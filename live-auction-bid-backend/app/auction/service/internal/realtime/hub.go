@@ -3,9 +3,11 @@ package realtime
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	auctionbiz "live-auction-bid/backend/app/auction/service/internal/biz/auction"
@@ -28,6 +30,7 @@ const (
 	pongTimeout          = 60 * time.Second
 	connectionSendBuffer = 32
 	roomCoalesceDelay    = 75 * time.Millisecond
+	connectionShardCount = 64
 )
 
 var eventJSONMarshal = protojson.MarshalOptions{
@@ -44,17 +47,31 @@ type RoomAccessValidator interface {
 }
 
 type Hub struct {
-	mu             sync.RWMutex
-	rooms          map[string]map[*connection]struct{}
+	connectionShards [connectionShardCount]connectionShard
+	nextShard        atomic.Uint64
+	lifecycleMu      sync.Mutex
+	draining         bool
+	serveHandlers    sync.WaitGroup
+	shutdownOnce     sync.Once
+	shutdownDone     chan struct{}
+	// lifecycleHooks are immutable deterministic test gates installed before use.
+	lifecycleHooks *hubLifecycleHooks
 	coalesceMu     sync.Mutex
 	coalescedRooms map[string]*coalescedRoomEvents
 	snapshot       SnapshotProvider
 	roomAccess     RoomAccessValidator
+	publicRooms    PublicRoomValidator
 	auth           *auth.Manager
 	config         Config
 	allowedOrigins map[string]struct{}
 	tickets        wsTicketCodec
 	upgrader       websocket.Upgrader
+	barrage        *BarrageService
+}
+
+type connectionShard struct {
+	mu    sync.RWMutex
+	rooms map[string]map[*connection]struct{}
 }
 
 type coalescedRoomEvents struct {
@@ -66,20 +83,32 @@ type coalescedRoomEvents struct {
 type outboundMessage struct {
 	event                  v1.AuctionEvent
 	anonymousPublicPayload []byte
+	rawPublicPayload       []byte
+	metricType             string
 }
 
 type connection struct {
-	hub       *Hub
-	roomID    string
-	scope     string
-	mu        sync.RWMutex
-	ctx       context.Context
-	authCtx   auth.AuthContext
-	client    requestctx.RequestContext
-	conn      *websocket.Conn
-	send      chan outboundMessage
-	done      chan struct{}
-	closeOnce sync.Once
+	hub         *Hub
+	roomID      string
+	scope       string
+	mu          sync.RWMutex
+	ctx         context.Context
+	authCtx     auth.AuthContext
+	client      requestctx.RequestContext
+	conn        *websocket.Conn
+	send        chan outboundMessage
+	barrageSend chan outboundMessage
+	done        chan struct{}
+	closeOnce   sync.Once
+	shardOnce   sync.Once
+	shardIndex  uint8
+	writeDone   chan struct{}
+}
+
+type hubLifecycleHooks struct {
+	afterUpgradeBeforeRegister func()
+	afterDrainScan             func()
+	beforeWritePumpExit        func()
 }
 
 type clientMessage struct {
@@ -102,8 +131,8 @@ func NewHub(snapshot SnapshotProvider, configs ...Config) *Hub {
 		allowedOrigins[origin] = struct{}{}
 	}
 	h := &Hub{
-		rooms:          make(map[string]map[*connection]struct{}),
 		coalescedRooms: make(map[string]*coalescedRoomEvents),
+		shutdownDone:   make(chan struct{}),
 		snapshot:       snapshot,
 		config:         normalized,
 		allowedOrigins: allowedOrigins,
@@ -123,6 +152,17 @@ func (h *Hub) BindAuthManager(authManager *auth.Manager) {
 
 func (h *Hub) BindRoomAccessValidator(validator RoomAccessValidator) {
 	h.roomAccess = validator
+}
+
+func (h *Hub) BindPublicRoomValidator(validator PublicRoomValidator) {
+	h.publicRooms = validator
+}
+
+// BindBarrageService attaches the deliberately lossy public barrage pipeline.
+// Auction events and barrage traffic keep separate admission/queueing paths so
+// a comment storm cannot consume the capacity reserved for bidding state.
+func (h *Hub) BindBarrageService(service *BarrageService) {
+	h.barrage = service
 }
 
 func (h *Hub) Publish(ctx context.Context, event v1.AuctionEvent) error {
@@ -146,17 +186,104 @@ func (h *Hub) deliver(_ context.Context, event v1.AuctionEvent) error {
 	if err != nil {
 		return err
 	}
-	for _, conn := range h.roomConnections(event.RoomId) {
-		select {
-		case conn.send <- message:
-		case <-conn.done:
-		default:
+	for i := range h.connectionShards {
+		shard := &h.connectionShards[i]
+		var failed []authoritativeEnqueueFailure
+		shard.mu.RLock()
+		for conn := range shard.rooms[event.RoomId] {
+			result := tryEnqueueAuthoritative(conn, message)
+			if result != enqueueSucceeded {
+				failed = append(failed, authoritativeEnqueueFailure{conn: conn, result: result})
+			}
+		}
+		shard.mu.RUnlock()
+
+		for _, failure := range failed {
 			observability.RecordWSEventDropped(event.GetType().String())
-			h.leave(conn)
-			conn.close()
+			if failure.result == enqueueQueueFull {
+				h.leave(failure.conn)
+				failure.conn.close()
+			}
 		}
 	}
 	return nil
+}
+
+func (h *Hub) deliverPublicBatch(roomID string, payload []byte) {
+	message := outboundMessage{rawPublicPayload: payload, metricType: "BARRAGE_BATCH"}
+	for i := range h.connectionShards {
+		shard := &h.connectionShards[i]
+		dropped := 0
+		viewerQueueDropped := 0
+		shard.mu.RLock()
+		for conn := range shard.rooms[roomID] {
+			// Barrages are public and lossy. Admin sockets receive authoritative
+			// auction events only and are not allowed to be evicted by chat traffic.
+			if conn.scope != ScopePublic {
+				continue
+			}
+			result := tryEnqueueBarrage(conn, message)
+			if result != enqueueSucceeded {
+				dropped++
+			}
+			if result == enqueueQueueFull {
+				viewerQueueDropped++
+			}
+		}
+		shard.mu.RUnlock()
+		for range dropped {
+			observability.RecordWSEventDropped(message.metricType)
+			// Drop this batch for a slow viewer. Do not disconnect it: the next
+			// batch is self-contained and more useful than old chat history.
+		}
+		for range viewerQueueDropped {
+			observability.RecordBarrageViewerDrop()
+		}
+	}
+}
+
+type authoritativeEnqueueResult uint8
+
+const (
+	enqueueSucceeded authoritativeEnqueueResult = iota
+	enqueueConnectionClosed
+	enqueueQueueFull
+)
+
+type authoritativeEnqueueFailure struct {
+	conn   *connection
+	result authoritativeEnqueueResult
+}
+
+func enqueueAuthoritative(conn *connection, message outboundMessage) bool {
+	result := tryEnqueueAuthoritative(conn, message)
+	if result == enqueueQueueFull {
+		conn.hub.leave(conn)
+		conn.close()
+	}
+	return result == enqueueSucceeded
+}
+
+func tryEnqueueAuthoritative(conn *connection, message outboundMessage) authoritativeEnqueueResult {
+	select {
+	case conn.send <- message:
+		return enqueueSucceeded
+	case <-conn.done:
+		return enqueueConnectionClosed
+	default:
+		return enqueueQueueFull
+	}
+}
+
+func tryEnqueueBarrage(conn *connection, message outboundMessage) authoritativeEnqueueResult {
+	select {
+	case conn.barrageSend <- message:
+		return enqueueSucceeded
+	case <-conn.done:
+		return enqueueConnectionClosed
+	default:
+		return enqueueQueueFull
+	}
 }
 
 func (h *Hub) prepareBroadcastMessage(event v1.AuctionEvent) (outboundMessage, error) {
@@ -245,6 +372,11 @@ func isImmediateEvent(eventType v1.AuctionEventType) bool {
 }
 
 func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request, roomID string) {
+	if !h.beginServeRoom() {
+		http.Error(w, "websocket hub is shutting down", http.StatusServiceUnavailable)
+		return
+	}
+	defer h.serveHandlers.Done()
 	ctx, authCtx, scope, ok := h.authenticateUpgrade(w, r, roomID)
 	if !ok {
 		return
@@ -253,24 +385,34 @@ func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request, roomID string) {
 	if err != nil {
 		return
 	}
+	if h.lifecycleHooks != nil && h.lifecycleHooks.afterUpgradeBeforeRegister != nil {
+		h.lifecycleHooks.afterUpgradeBeforeRegister()
+	}
 
 	client := &connection{
-		hub:     h,
-		roomID:  roomID,
-		scope:   scope,
-		ctx:     ctx,
-		authCtx: authCtx,
-		client:  requestctx.Snapshot(ctx),
-		conn:    conn,
-		send:    make(chan outboundMessage, connectionSendBuffer),
-		done:    make(chan struct{}),
+		hub:         h,
+		roomID:      roomID,
+		scope:       scope,
+		ctx:         ctx,
+		authCtx:     authCtx,
+		client:      requestctx.Snapshot(ctx),
+		conn:        conn,
+		send:        make(chan outboundMessage, connectionSendBuffer),
+		barrageSend: make(chan outboundMessage, 2),
+		done:        make(chan struct{}),
+		writeDone:   make(chan struct{}),
 	}
-	h.join(client)
-	observability.IncWSConnection(roomID, scope)
-	defer func() {
-		observability.DecWSConnection(roomID, scope)
-		h.leave(client)
+	if !h.registerConnection(client) {
 		client.close()
+		return
+	}
+	slog.DebugContext(ctx, "websocket room connection opened", "room_id", roomID, "scope", scope)
+	defer func() {
+		client.close()
+		<-client.writeDone
+		observability.DecWSConnection(scope)
+		slog.DebugContext(ctx, "websocket room connection closed", "room_id", roomID, "scope", scope)
+		h.leave(client)
 	}()
 
 	h.enqueueSnapshot(client.ctx, client)
@@ -373,50 +515,137 @@ func websocketAuthorization(r *http.Request) string {
 	return ""
 }
 
-func (h *Hub) join(conn *connection) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	if h.rooms[conn.roomID] == nil {
-		h.rooms[conn.roomID] = make(map[*connection]struct{})
+func (h *Hub) beginServeRoom() bool {
+	h.lifecycleMu.Lock()
+	defer h.lifecycleMu.Unlock()
+	if h.draining {
+		return false
 	}
-	h.rooms[conn.roomID][conn] = struct{}{}
+	h.serveHandlers.Add(1)
+	return true
+}
+
+func (h *Hub) join(conn *connection) bool {
+	h.lifecycleMu.Lock()
+	defer h.lifecycleMu.Unlock()
+	if h.draining {
+		return false
+	}
+	h.joinConnection(conn)
+	return true
+}
+
+func (h *Hub) registerConnection(conn *connection) bool {
+	h.lifecycleMu.Lock()
+	defer h.lifecycleMu.Unlock()
+	if h.draining {
+		return false
+	}
+	h.joinConnection(conn)
+	observability.IncWSConnection(conn.scope)
+	return true
+}
+
+func (h *Hub) joinConnection(conn *connection) {
+	shard := h.connectionShard(conn)
+	shard.mu.Lock()
+	defer shard.mu.Unlock()
+
+	if shard.rooms == nil {
+		shard.rooms = make(map[string]map[*connection]struct{})
+	}
+	if shard.rooms[conn.roomID] == nil {
+		shard.rooms[conn.roomID] = make(map[*connection]struct{})
+	}
+	shard.rooms[conn.roomID][conn] = struct{}{}
+}
+
+// Shutdown stops admission before draining every upgraded WebSocket. The
+// transport cannot close hijacked connections, so Hub owns this lifecycle.
+// Concurrent and repeated calls wait for the same drain operation.
+func (h *Hub) Shutdown(ctx context.Context) error {
+	h.lifecycleMu.Lock()
+	h.draining = true
+	h.lifecycleMu.Unlock()
+
+	h.shutdownOnce.Do(func() {
+		go h.drainConnections()
+	})
+	select {
+	case <-h.shutdownDone:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (h *Hub) drainConnections() {
+	connections := make(map[*connection]struct{})
+	for i := range h.connectionShards {
+		shard := &h.connectionShards[i]
+		shard.mu.RLock()
+		for _, roomConnections := range shard.rooms {
+			for conn := range roomConnections {
+				connections[conn] = struct{}{}
+			}
+		}
+		shard.mu.RUnlock()
+	}
+	if h.lifecycleHooks != nil && h.lifecycleHooks.afterDrainScan != nil {
+		h.lifecycleHooks.afterDrainScan()
+	}
+
+	// Never close a socket while holding a shard lock: both pumps may leave the
+	// room as they unblock, and leave takes the shard write lock.
+	for conn := range connections {
+		h.leave(conn)
+		conn.close()
+	}
+	h.serveHandlers.Wait()
+	close(h.shutdownDone)
 }
 
 func (h *Hub) leave(conn *connection) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	shard := h.connectionShard(conn)
+	shard.mu.Lock()
+	defer shard.mu.Unlock()
 
-	delete(h.rooms[conn.roomID], conn)
-	if len(h.rooms[conn.roomID]) == 0 {
-		delete(h.rooms, conn.roomID)
+	delete(shard.rooms[conn.roomID], conn)
+	if len(shard.rooms[conn.roomID]) == 0 {
+		delete(shard.rooms, conn.roomID)
 	}
 }
 
-func (h *Hub) roomConnections(roomID string) []*connection {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
-	connections := make([]*connection, 0, len(h.rooms[roomID]))
-	for conn := range h.rooms[roomID] {
-		connections = append(connections, conn)
-	}
-	return connections
+func (h *Hub) connectionShard(conn *connection) *connectionShard {
+	conn.shardOnce.Do(func() {
+		conn.shardIndex = uint8((h.nextShard.Add(1) - 1) % connectionShardCount)
+	})
+	return &h.connectionShards[conn.shardIndex]
 }
 
 func (h *Hub) RoomPresence(roomID string) *v1.RoomPresence {
-	connections := h.roomConnections(roomID)
 	presence := &v1.RoomPresence{
 		RoomId:           roomID,
-		TotalConnections: int32(len(connections)),
 		ServerTimeUnixMs: clock.NowMs(),
 	}
-	for _, conn := range connections {
-		if conn.canReceivePrivateEvents() {
-			presence.OperatorConnections++
-			continue
+	// Presence is an exact membership snapshot. Acquire every shard in the
+	// canonical ascending order; all other membership paths take only one shard.
+	for i := range h.connectionShards {
+		h.connectionShards[i].mu.RLock()
+	}
+	for i := range h.connectionShards {
+		shard := &h.connectionShards[i]
+		for conn := range shard.rooms[roomID] {
+			presence.TotalConnections++
+			if conn.canReceivePrivateEvents() {
+				presence.OperatorConnections++
+				continue
+			}
+			presence.ViewerConnections++
 		}
-		presence.ViewerConnections++
+	}
+	for i := len(h.connectionShards) - 1; i >= 0; i-- {
+		h.connectionShards[i].mu.RUnlock()
 	}
 	return presence
 }
@@ -522,25 +751,31 @@ func (c *connection) writePump() {
 	defer func() {
 		c.hub.leave(c)
 		c.close()
+		if c.hub.lifecycleHooks != nil && c.hub.lifecycleHooks.beforeWritePumpExit != nil {
+			c.hub.lifecycleHooks.beforeWritePumpExit()
+		}
+		close(c.writeDone)
 	}()
 
 	for {
 		select {
 		case message := <-c.send:
-			select {
-			case <-c.done:
-				return
-			default:
-			}
-			_ = c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
-			payload, eventType, err := c.payloadForDelivery(message)
-			if err != nil {
+			if !c.writeOutbound(message) {
 				return
 			}
-			if err := c.conn.WriteMessage(websocket.TextMessage, payload); err != nil {
+			continue
+		default:
+		}
+
+		select {
+		case message := <-c.send:
+			if !c.writeOutbound(message) {
 				return
 			}
-			observability.RecordWSEventSent(eventType.String())
+		case message := <-c.barrageSend:
+			if !c.writeOutbound(message) {
+				return
+			}
 		case <-ticker.C:
 			_ = c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
@@ -552,7 +787,32 @@ func (c *connection) writePump() {
 	}
 }
 
+func (c *connection) writeOutbound(message outboundMessage) bool {
+	select {
+	case <-c.done:
+		return false
+	default:
+	}
+	_ = c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+	payload, eventType, err := c.payloadForDelivery(message)
+	if err != nil {
+		return false
+	}
+	if err := c.conn.WriteMessage(websocket.TextMessage, payload); err != nil {
+		return false
+	}
+	metricType := eventType.String()
+	if message.metricType != "" {
+		metricType = message.metricType
+	}
+	observability.RecordWSEventSent(metricType)
+	return true
+}
+
 func (c *connection) payloadForDelivery(message outboundMessage) ([]byte, v1.AuctionEventType, error) {
+	if len(message.rawPublicPayload) > 0 {
+		return message.rawPublicPayload, v1.AuctionEventType_AUCTION_EVENT_TYPE_UNSPECIFIED, nil
+	}
 	if len(message.anonymousPublicPayload) > 0 && c.canUseAnonymousPublicPayload() {
 		return message.anonymousPublicPayload, message.event.GetType(), nil
 	}
@@ -639,6 +899,8 @@ func canOpenAdminScope(claims *auth.Claims) bool {
 func (c *connection) close() {
 	c.closeOnce.Do(func() {
 		close(c.done)
-		_ = c.conn.Close()
+		if c.conn != nil {
+			_ = c.conn.Close()
+		}
 	})
 }

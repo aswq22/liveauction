@@ -20,6 +20,7 @@ export type ApiRequestOptions = {
   requestId?: string;
   headers?: HeadersInit;
   retryAuth?: boolean;
+  signal?: AbortSignal;
 };
 
 type ParsedResponse<T> =
@@ -119,6 +120,7 @@ async function sendOnce<T>(options: ApiRequestOptions, token: string | null, req
     headers,
     body,
     keepalive: options.keepalive,
+    signal: options.signal,
   });
   const bodyData = await parseBody<T & { result?: Partial<ReplyResult> }>(response);
   const result = typeof bodyData === 'object' && bodyData ? bodyData.result : undefined;
@@ -161,12 +163,19 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
   const auth = options.auth ?? 'required';
   const retryAuth = options.retryAuth ?? auth !== 'none';
   const requestId = options.requestId ?? createRequestId(options.operation ?? options.path.replace(/[^a-z0-9]+/gi, '-'));
-  const token = auth === 'none' ? null : await authSession.getValidAccessToken();
+  throwIfAborted(options.signal);
+  const token = auth === 'none' ? null : await waitForAbortable(authSession.getValidAccessToken(), options.signal);
+  throwIfAborted(options.signal);
   let parsed = await sendOnce<T>(options, token, requestId);
+  throwIfAborted(options.signal);
   if (!parsed.ok && parsed.authExpired && parsed.authRefreshable && retryAuth) {
-    const refreshed = await authSession.refreshOnce();
+    throwIfAborted(options.signal);
+    const refreshed = await waitForAbortable(authSession.refreshOnce(), options.signal);
+    throwIfAborted(options.signal);
     if (refreshed?.accessToken) {
+      throwIfAborted(options.signal);
       parsed = await sendOnce<T>(options, refreshed.accessToken, requestId);
+      throwIfAborted(options.signal);
     }
   }
   if (!parsed.ok) {
@@ -174,6 +183,33 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
     throw parsed.error;
   }
   return parsed.data;
+}
+
+function throwIfAborted(signal?: AbortSignal) {
+  signal?.throwIfAborted();
+}
+
+export function waitForAbortable<T>(promise: Promise<T>, signal?: AbortSignal) {
+  if (!signal) return promise;
+  return new Promise<T>((resolve, reject) => {
+    const cleanup = () => signal.removeEventListener('abort', abort);
+    const abort = () => {
+      cleanup();
+      reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));
+    };
+    signal.addEventListener('abort', abort, { once: true });
+    promise.then(
+      (value) => {
+        cleanup();
+        resolve(value);
+      },
+      (cause) => {
+        cleanup();
+        reject(cause);
+      },
+    );
+    if (signal.aborted) abort();
+  });
 }
 
 authSession.configureRefresh(async (refreshToken: string): Promise<AuthTokens> => {

@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package agent.v1;
+
+option go_package = "live-auction-bid/backend/api/agent/v1;agentv1";
+
+import "proto/agent/v1/common.proto";
+
+service AuctionAgentToolService {
+  rpc QueryInventory(QueryInventoryRequest) returns (QueryInventoryReply);
+  rpc QueryAuctionHistory(QueryAuctionHistoryRequest) returns (QueryAuctionHistoryReply);
+  rpc GetSessionSnapshot(GetSessionSnapshotRequest) returns (GetSessionSnapshotReply);
+}
+
+message Money {
+  int64 amount = 1;
+  string currency = 2;
+}
+
+message QueryInventoryRequest {
+  RequestContext context = 1;
+  int32 limit = 2;
+}
+
+message QueryInventoryReply {
+  repeated InventoryLot lots = 1;
+}
+
+message QueryAuctionHistoryRequest {
+  RequestContext context = 1;
+  int32 limit = 2;
+}
+
+message QueryAuctionHistoryReply {
+  repeated AuctionHistoryItem items = 1;
+}
+
+message GetSessionSnapshotRequest {
+  RequestContext context = 1;
+  string room_id = 2;
+}
+
+message GetSessionSnapshotReply {
+  SessionSnapshot snapshot = 1;
+}
+
+// Merchant-owned lot data only. Buyer identity and contact data are excluded.
+message InventoryLot {
+  string id = 1;
+  string room_id = 2;
+  string title = 3;
+  string category = 4;
+  string description = 5;
+  repeated string tags = 6;
+  string status = 7;
+  int64 stock = 8;
+  Money start_price = 9;
+  Money current_price = 10;
+  int64 created_at = 11;
+  int64 updated_at = 12;
+  int32 duration_seconds = 13;
+}
+
+// Historical auction information intentionally omits buyer-sensitive data.
+message AuctionHistoryItem {
+  string lot_id = 1;
+  string room_id = 2;
+  string lot_status = 3;
+  Money final_price = 4;
+  string order_status = 5;
+  string payment_status = 6;
+  string participation_result = 7;
+  int64 settled_at_unix_ms = 8;
+}
+
+message SessionSnapshot {
+  string room_id = 1;
+  InventoryLot current_lot = 2;
+  repeated InventoryLot queued_lots = 3;
+  int64 updated_at_unix_ms = 4;
+}

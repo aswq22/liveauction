@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	v1 "live-auction-bid/backend/api/auction/service/v1"
@@ -20,6 +21,7 @@ const (
 	ResultCodeForbidden                    int32 = 403001
 	ResultCodeAccountDisabled              int32 = 403002
 	ResultCodeLotVersionConflict           int32 = 409001
+	ResultCodeConflict                     int32 = 409000
 	ResultCodeUsernameTaken                int32 = 409002
 	ResultCodeRoomActiveLotExists          int32 = 409003
 	ResultCodeQueuePositionConflict        int32 = 409004
@@ -34,6 +36,12 @@ const (
 	ResultCodeDepositRequired              int32 = 409109
 	ResultCodeAddressRequired              int32 = 409110
 	ResultCodeAddressNotFound              int32 = 409111
+	ResultCodeAgentReviewSnapshotStale     int32 = 409201
+	ResultCodeAgentCandidateChanged        int32 = 409202
+	ResultCodeAgentBatchAlreadyApplied     int32 = 409203
+	ResultCodeAgentImageAssetInvalid       int32 = 400201
+	ResultCodeAgentBatchApplyFailed        int32 = 500201
+	ResultCodeResourceExhausted            int32 = 429001
 	ResultCodeUserNotFound                 int32 = 404001
 	ResultCodePaymentProviderNotConfigured int32 = 500101
 	ResultCodeInternalError                int32 = 500000
@@ -57,6 +65,10 @@ func OKResult(ctx context.Context) *v1.ReplyResult {
 	return okResult(ctx)
 }
 
+func ResourceExhaustedResult(ctx context.Context, message string) *v1.ReplyResult {
+	return &v1.ReplyResult{Code: ResultCodeResourceExhausted, Message: message, TraceId: requestctx.TraceID(ctx)}
+}
+
 func okResult(ctx context.Context) *v1.ReplyResult {
 	return &v1.ReplyResult{Code: ResultCodeOK, Message: MessageOK, TraceId: requestctx.TraceID(ctx)}
 }
@@ -69,8 +81,26 @@ func ErrorResult(ctx context.Context, err error) *v1.ReplyResult {
 	if code := apperr.BusinessCodeForError(err); code != "" {
 		return &v1.ReplyResult{Code: resultCodeForBusinessCode(code), Message: string(code), TraceId: traceID}
 	}
+	if errors.Is(err, apperr.ErrAgentReviewSnapshotStale) {
+		return &v1.ReplyResult{Code: ResultCodeAgentReviewSnapshotStale, Message: "AGENT_REVIEW_SNAPSHOT_STALE", TraceId: traceID}
+	}
+	if errors.Is(err, apperr.ErrAgentCandidateChanged) {
+		return &v1.ReplyResult{Code: ResultCodeAgentCandidateChanged, Message: "AGENT_CANDIDATE_CHANGED", TraceId: traceID}
+	}
+	if errors.Is(err, apperr.ErrAgentBatchAlreadyApplied) {
+		return &v1.ReplyResult{Code: ResultCodeAgentBatchAlreadyApplied, Message: "AGENT_BATCH_ALREADY_APPLIED", TraceId: traceID}
+	}
+	if errors.Is(err, apperr.ErrAgentImageAssetInvalid) {
+		return &v1.ReplyResult{Code: ResultCodeAgentImageAssetInvalid, Message: "AGENT_IMAGE_ASSET_INVALID", TraceId: traceID}
+	}
+	if errors.Is(err, apperr.ErrAgentBatchApplyFailed) {
+		return &v1.ReplyResult{Code: ResultCodeAgentBatchApplyFailed, Message: "AGENT_BATCH_APPLY_FAILED", TraceId: traceID}
+	}
 	if apperr.IsLotVersionConflict(err) {
 		return &v1.ReplyResult{Code: ResultCodeLotVersionConflict, Message: MessageLotVersionConflict, TraceId: traceID}
+	}
+	if errors.Is(err, apperr.ErrConflict) {
+		return &v1.ReplyResult{Code: ResultCodeConflict, Message: "request conflicts with an existing resource", TraceId: traceID}
 	}
 	if apperr.IsRoomActiveLotExists(err) {
 		return &v1.ReplyResult{Code: ResultCodeRoomActiveLotExists, Message: MessageRoomActiveLotExists, TraceId: traceID}

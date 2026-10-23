@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Bell, FileClock, Gavel, LayoutDashboard, ListChecks, PlayCircle, Radio, ReceiptText, Settings, ShieldAlert, Users, Wifi } from 'lucide-react';
+import { Bell, Bot, FileClock, Gavel, LayoutDashboard, ListChecks, PlayCircle, Radio, ReceiptText, Settings, ShieldAlert, Users, Wifi } from 'lucide-react';
+import { AgentConsolePage } from '../../features/agent-console/AgentConsolePage';
 import { AdminDashboardPage } from '../../features/auction-manage/AdminDashboardPage';
 import { AuctionHistoryPage } from '../../features/auction-manage/AuctionHistoryPage';
 import { AuctionManagementPage } from '../../features/auction-manage/AuctionManagementPage';
@@ -8,8 +9,9 @@ import { OrderManagementPage } from '../../features/order-manage/OrderManagement
 import { TeamAccountsPage } from '../../features/team-accounts/TeamAccountsPage';
 import { BidAuditPage, LiveControlPage, RealtimeDiagnosticsPage } from '../../features/realtime-console/RealtimeConsolePages';
 import { listAdminRooms } from '../../features/auction/api/auctionApi';
+import { currentAuth } from '../../features/auth/api/authApi';
 import { ADMIN_TEAM_ACCOUNT } from '../../shared/config/studio';
-import type { Room } from '../../shared/api/types';
+import { PERMISSION_CODE, type Room } from '../../shared/api/types';
 import { HostConsoleShell, type StudioNavGroupConfig } from './components/HostConsoleShell';
 import { StudioCard, StudioEmptyState, StudioMetricCard, StudioPageHeader } from './components/studio-ui';
 import './styles/console-round06.css';
@@ -22,6 +24,7 @@ const navGroups: StudioNavGroupConfig[] = [
   { label: '直播筹备', items: [
     { label: '添加拍品', href: '/admin/auctions/create', icon: <PlayCircle size={17} />, match: (pathname) => pathname.includes('/auctions/create') },
     { label: '本场拍品队列', href: '/admin/auctions', icon: <Gavel size={17} />, match: (pathname) => pathname.includes('/auctions') && !pathname.includes('/auctions/create') && !pathname.includes('/auctions/history') && !pathname.includes('/control') },
+    { label: 'AI 运营 Agent', href: '/admin/agent', icon: <Bot size={17} />, match: isAgentConsolePath },
   ] },
   { label: '直播后', items: [
     { label: '拍品历史', href: '/admin/auctions/history', icon: <FileClock size={17} />, match: (pathname) => pathname.includes('/auctions/history') },
@@ -39,6 +42,7 @@ const navGroups: StudioNavGroupConfig[] = [
 ];
 
 function pathTitle(pathname: string) {
+  if (isAgentConsolePath(pathname)) return 'AI 运营 Agent';
   if (pathname === '/admin/realtime' || pathname === '/host/realtime') return '直播健康';
   if (pathname.includes('/auctions/create')) return '添加拍品';
   if (pathname.includes('/auctions/history')) return '拍品历史';
@@ -54,12 +58,17 @@ function pathTitle(pathname: string) {
 
 function AppShell({ children, currentRoom }: { children: ReactNode; currentRoom: Room }) {
   const roomSummary = useMemo(() => ({ name: currentRoom.name || currentRoom.id, latency: currentRoom.platform || 'douyin' }), [currentRoom]);
-  return <HostConsoleShell navGroups={navGroups} currentHostRoom={roomSummary} currentTeamAccount={ADMIN_TEAM_ACCOUNT} titleForPath={pathTitle}>{children}</HostConsoleShell>;
+  const visibleNavGroups = navGroups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => item.href !== '/admin/agent' || canNavigateToAgentConsole(currentAuth().user)),
+  }));
+  return <HostConsoleShell navGroups={visibleNavGroups} currentHostRoom={roomSummary} currentTeamAccount={ADMIN_TEAM_ACCOUNT} titleForPath={pathTitle}>{children}</HostConsoleShell>;
 }
 
 type ConsoleRoute = { match: (pathname: string) => boolean; render: (room: Room) => ReactNode };
 
 const consoleRoutes: ConsoleRoute[] = [
+  { match: isAgentConsolePath, render: (room) => canNavigateToAgentConsole(currentAuth().user) ? <AgentConsolePage roomId={room.id} /> : <AgentPermissionNotice /> },
   { match: (pathname) => pathname === '/admin/realtime' || pathname === '/host/realtime', render: (room) => <RealtimeDiagnosticsPage roomId={room.id} /> },
   { match: (pathname) => pathname.includes('/auctions/create'), render: (room) => <AuctionCreatePage roomId={room.id} roomName={room.name} /> },
   { match: (pathname) => pathname.includes('/auctions/history'), render: (room) => <AuctionHistoryPage roomId={room.id} /> },
@@ -75,6 +84,14 @@ const consoleRoutes: ConsoleRoute[] = [
 function routePage(room: Room, pathname = location.pathname) {
   const route = consoleRoutes.find((item) => item.match(pathname));
   return route ? route.render(room) : <AdminDashboardPage roomId={room.id} roomName={room.name} />;
+}
+
+export function isAgentConsolePath(pathname: string) {
+  return pathname === '/admin/agent' || pathname === '/host/agent';
+}
+
+export function canNavigateToAgentConsole(user?: { permissionCodes?: readonly string[] } | null) {
+  return Boolean(user?.permissionCodes?.includes(PERMISSION_CODE.LOT_VIEW_ADMIN));
 }
 
 export function HostConsolePage() {
@@ -129,5 +146,11 @@ function SettingsPage() {
 function AlertsPage() {
   return <StudioCard title="异常告警" subtitle="Alerts" padding="lg" className="alertsPage">
     <StudioEmptyState icon={<ShieldAlert size={34} />} title="告警列表待后端接口" description="P2 不新增 mock 告警数据。竞拍、订单和实时异常已经在对应 feature 页内用真实接口错误展示。" />
+  </StudioCard>;
+}
+
+function AgentPermissionNotice() {
+  return <StudioCard title="AI 运营 Agent" subtitle="Permission required" padding="lg">
+    <StudioEmptyState icon={<ShieldAlert size={34} />} title="当前账号无权生成运营方案" description="此页面需要 lot.view_admin 权限；请联系主账号调整角色权限。" />
   </StudioCard>;
 }

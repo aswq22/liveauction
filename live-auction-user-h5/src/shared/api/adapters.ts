@@ -9,6 +9,7 @@ import {
   type AuctionEventType,
   type AuctionSocketEvent,
   type AuthTokens,
+  type BarrageMessage,
   type BidEvent,
   type BidRecord,
   type BidRule,
@@ -273,6 +274,22 @@ function normalizeEventType(value: unknown): AuctionEventType {
   return normalizeEnum(value, auctionEventTypeValues, AUCTION_EVENT_TYPE.UNSPECIFIED);
 }
 
+function normalizeBarrageMessage(input: unknown): BarrageMessage | undefined {
+  const raw = asRecord(input);
+  const id = stringValue(raw.id).trim();
+  const content = stringValue(raw.content).trim();
+  if (!id || !content) return undefined;
+  return {
+    id,
+    roomId: stringValue(pick(raw, 'roomId', 'room_id')),
+    displayName: stringValue(pick(raw, 'displayName', 'display_name')),
+    content,
+    priority: numberValue(raw.priority),
+    createdAtMs: numberValue(pick(raw, 'createdAtMs', 'created_at_ms')),
+    count: Math.max(1, numberValue(raw.count, 1)),
+  };
+}
+
 export function normalizeOrder(input: unknown): OrderSummary | undefined {
   const raw = asRecord(input);
   const id = stringValue(raw.id);
@@ -351,6 +368,10 @@ export function normalizeAuctionEvent(input: unknown): AuctionSocketEvent {
     bid: raw.bid ? normalizeBid(raw.bid) : undefined,
     recentBids: Array.isArray(pick(raw, 'recentBids', 'recent_bids'))
       ? (pick<unknown[]>(raw, 'recentBids', 'recent_bids') ?? []).map(normalizeBid)
+      : undefined,
+    windowMs: type === AUCTION_EVENT_TYPE.BARRAGE_BATCH ? numberValue(pick(raw, 'windowMs', 'window_ms')) : undefined,
+    messages: type === AUCTION_EVENT_TYPE.BARRAGE_BATCH && Array.isArray(raw.messages)
+      ? raw.messages.map(normalizeBarrageMessage).filter((item): item is BarrageMessage => Boolean(item))
       : undefined,
     rejectReason: stringValue(pick(raw, 'rejectReason', 'reject_reason') ?? raw.reason),
     reason,

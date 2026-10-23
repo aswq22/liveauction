@@ -414,6 +414,326 @@ func (AuctionEventType) EnumDescriptor() ([]byte, []int) {
 	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{4}
 }
 
+type BuyerSearchRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Query          string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	RoomId         string                 `protobuf:"bytes,2,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	MinPriceAmount *int64                 `protobuf:"varint,3,opt,name=min_price_amount,json=minPriceAmount,proto3,oneof" json:"min_price_amount,omitempty"`
+	MaxPriceAmount *int64                 `protobuf:"varint,4,opt,name=max_price_amount,json=maxPriceAmount,proto3,oneof" json:"max_price_amount,omitempty"`
+	Statuses       []LotStatus            `protobuf:"varint,5,rep,packed,name=statuses,proto3,enum=auction.service.v1.LotStatus" json:"statuses,omitempty"`
+	PageSize       int32                  `protobuf:"varint,6,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Cursor         string                 `protobuf:"bytes,7,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *BuyerSearchRequest) Reset() {
+	*x = BuyerSearchRequest{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuyerSearchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuyerSearchRequest) ProtoMessage() {}
+
+func (x *BuyerSearchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuyerSearchRequest.ProtoReflect.Descriptor instead.
+func (*BuyerSearchRequest) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *BuyerSearchRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *BuyerSearchRequest) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *BuyerSearchRequest) GetMinPriceAmount() int64 {
+	if x != nil && x.MinPriceAmount != nil {
+		return *x.MinPriceAmount
+	}
+	return 0
+}
+
+func (x *BuyerSearchRequest) GetMaxPriceAmount() int64 {
+	if x != nil && x.MaxPriceAmount != nil {
+		return *x.MaxPriceAmount
+	}
+	return 0
+}
+
+func (x *BuyerSearchRequest) GetStatuses() []LotStatus {
+	if x != nil {
+		return x.Statuses
+	}
+	return nil
+}
+
+func (x *BuyerSearchRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *BuyerSearchRequest) GetCursor() string {
+	if x != nil {
+		return x.Cursor
+	}
+	return ""
+}
+
+type BuyerSearchFilters struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	RoomId         string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	MinPriceAmount *int64                 `protobuf:"varint,2,opt,name=min_price_amount,json=minPriceAmount,proto3,oneof" json:"min_price_amount,omitempty"`
+	MaxPriceAmount *int64                 `protobuf:"varint,3,opt,name=max_price_amount,json=maxPriceAmount,proto3,oneof" json:"max_price_amount,omitempty"`
+	Statuses       []LotStatus            `protobuf:"varint,4,rep,packed,name=statuses,proto3,enum=auction.service.v1.LotStatus" json:"statuses,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *BuyerSearchFilters) Reset() {
+	*x = BuyerSearchFilters{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuyerSearchFilters) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuyerSearchFilters) ProtoMessage() {}
+
+func (x *BuyerSearchFilters) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuyerSearchFilters.ProtoReflect.Descriptor instead.
+func (*BuyerSearchFilters) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *BuyerSearchFilters) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *BuyerSearchFilters) GetMinPriceAmount() int64 {
+	if x != nil && x.MinPriceAmount != nil {
+		return *x.MinPriceAmount
+	}
+	return 0
+}
+
+func (x *BuyerSearchFilters) GetMaxPriceAmount() int64 {
+	if x != nil && x.MaxPriceAmount != nil {
+		return *x.MaxPriceAmount
+	}
+	return 0
+}
+
+func (x *BuyerSearchFilters) GetStatuses() []LotStatus {
+	if x != nil {
+		return x.Statuses
+	}
+	return nil
+}
+
+type BuyerSearchHit struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Lot               *Lot                   `protobuf:"bytes,1,opt,name=lot,proto3" json:"lot,omitempty"`
+	MatchReason       string                 `protobuf:"bytes,2,opt,name=match_reason,json=matchReason,proto3" json:"match_reason,omitempty"`
+	FactsReadAtUnixMs int64                  `protobuf:"varint,3,opt,name=facts_read_at_unix_ms,json=factsReadAtUnixMs,proto3" json:"facts_read_at_unix_ms,omitempty"`
+	Href              string                 `protobuf:"bytes,4,opt,name=href,proto3" json:"href,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *BuyerSearchHit) Reset() {
+	*x = BuyerSearchHit{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuyerSearchHit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuyerSearchHit) ProtoMessage() {}
+
+func (x *BuyerSearchHit) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuyerSearchHit.ProtoReflect.Descriptor instead.
+func (*BuyerSearchHit) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *BuyerSearchHit) GetLot() *Lot {
+	if x != nil {
+		return x.Lot
+	}
+	return nil
+}
+
+func (x *BuyerSearchHit) GetMatchReason() string {
+	if x != nil {
+		return x.MatchReason
+	}
+	return ""
+}
+
+func (x *BuyerSearchHit) GetFactsReadAtUnixMs() int64 {
+	if x != nil {
+		return x.FactsReadAtUnixMs
+	}
+	return 0
+}
+
+func (x *BuyerSearchHit) GetHref() string {
+	if x != nil {
+		return x.Href
+	}
+	return ""
+}
+
+type BuyerSearchReply struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Result         *ReplyResult           `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	Hits           []*BuyerSearchHit      `protobuf:"bytes,2,rep,name=hits,proto3" json:"hits,omitempty"`
+	AppliedFilters *BuyerSearchFilters    `protobuf:"bytes,3,opt,name=applied_filters,json=appliedFilters,proto3" json:"applied_filters,omitempty"`
+	Warnings       []string               `protobuf:"bytes,4,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	Mode           string                 `protobuf:"bytes,5,opt,name=mode,proto3" json:"mode,omitempty"` // HYBRID or LEXICAL, never silently disguised.
+	DegradedReason string                 `protobuf:"bytes,6,opt,name=degraded_reason,json=degradedReason,proto3" json:"degraded_reason,omitempty"`
+	NextCursor     string                 `protobuf:"bytes,7,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *BuyerSearchReply) Reset() {
+	*x = BuyerSearchReply{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BuyerSearchReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuyerSearchReply) ProtoMessage() {}
+
+func (x *BuyerSearchReply) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuyerSearchReply.ProtoReflect.Descriptor instead.
+func (*BuyerSearchReply) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *BuyerSearchReply) GetResult() *ReplyResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+func (x *BuyerSearchReply) GetHits() []*BuyerSearchHit {
+	if x != nil {
+		return x.Hits
+	}
+	return nil
+}
+
+func (x *BuyerSearchReply) GetAppliedFilters() *BuyerSearchFilters {
+	if x != nil {
+		return x.AppliedFilters
+	}
+	return nil
+}
+
+func (x *BuyerSearchReply) GetWarnings() []string {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
+func (x *BuyerSearchReply) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *BuyerSearchReply) GetDegradedReason() string {
+	if x != nil {
+		return x.DegradedReason
+	}
+	return ""
+}
+
+func (x *BuyerSearchReply) GetNextCursor() string {
+	if x != nil {
+		return x.NextCursor
+	}
+	return ""
+}
+
 // ReplyResult 表示所有 service 响应的统一返回头。
 //
 // 说明：
@@ -434,7 +754,7 @@ type ReplyResult struct {
 
 func (x *ReplyResult) Reset() {
 	*x = ReplyResult{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[0]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -446,7 +766,7 @@ func (x *ReplyResult) String() string {
 func (*ReplyResult) ProtoMessage() {}
 
 func (x *ReplyResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[0]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -459,7 +779,7 @@ func (x *ReplyResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplyResult.ProtoReflect.Descriptor instead.
 func (*ReplyResult) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{0}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ReplyResult) GetCode() int32 {
@@ -501,7 +821,7 @@ type Money struct {
 
 func (x *Money) Reset() {
 	*x = Money{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[1]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -513,7 +833,7 @@ func (x *Money) String() string {
 func (*Money) ProtoMessage() {}
 
 func (x *Money) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[1]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -526,7 +846,7 @@ func (x *Money) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Money.ProtoReflect.Descriptor instead.
 func (*Money) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{1}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Money) GetAmount() int64 {
@@ -556,7 +876,7 @@ type LotStats struct {
 
 func (x *LotStats) Reset() {
 	*x = LotStats{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[2]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -568,7 +888,7 @@ func (x *LotStats) String() string {
 func (*LotStats) ProtoMessage() {}
 
 func (x *LotStats) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[2]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -581,7 +901,7 @@ func (x *LotStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LotStats.ProtoReflect.Descriptor instead.
 func (*LotStats) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{2}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *LotStats) GetParticipantCount() int64 {
@@ -627,7 +947,7 @@ type BidRule struct {
 
 func (x *BidRule) Reset() {
 	*x = BidRule{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[3]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -639,7 +959,7 @@ func (x *BidRule) String() string {
 func (*BidRule) ProtoMessage() {}
 
 func (x *BidRule) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[3]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -652,7 +972,7 @@ func (x *BidRule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BidRule.ProtoReflect.Descriptor instead.
 func (*BidRule) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{3}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *BidRule) GetStartPrice() *Money {
@@ -734,7 +1054,7 @@ type TrustRevealCard struct {
 
 func (x *TrustRevealCard) Reset() {
 	*x = TrustRevealCard{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[4]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -746,7 +1066,7 @@ func (x *TrustRevealCard) String() string {
 func (*TrustRevealCard) ProtoMessage() {}
 
 func (x *TrustRevealCard) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[4]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -759,7 +1079,7 @@ func (x *TrustRevealCard) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrustRevealCard.ProtoReflect.Descriptor instead.
 func (*TrustRevealCard) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{4}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *TrustRevealCard) GetId() string {
@@ -841,7 +1161,7 @@ type Bid struct {
 
 func (x *Bid) Reset() {
 	*x = Bid{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[5]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -853,7 +1173,7 @@ func (x *Bid) String() string {
 func (*Bid) ProtoMessage() {}
 
 func (x *Bid) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[5]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -866,7 +1186,7 @@ func (x *Bid) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Bid.ProtoReflect.Descriptor instead.
 func (*Bid) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{5}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Bid) GetId() string {
@@ -941,7 +1261,7 @@ type RankingItem struct {
 
 func (x *RankingItem) Reset() {
 	*x = RankingItem{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[6]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -953,7 +1273,7 @@ func (x *RankingItem) String() string {
 func (*RankingItem) ProtoMessage() {}
 
 func (x *RankingItem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[6]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -966,7 +1286,7 @@ func (x *RankingItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RankingItem.ProtoReflect.Descriptor instead.
 func (*RankingItem) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{6}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RankingItem) GetRank() int32 {
@@ -1042,7 +1362,7 @@ type DuelState struct {
 
 func (x *DuelState) Reset() {
 	*x = DuelState{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[7]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1054,7 +1374,7 @@ func (x *DuelState) String() string {
 func (*DuelState) ProtoMessage() {}
 
 func (x *DuelState) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[7]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1067,7 +1387,7 @@ func (x *DuelState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DuelState.ProtoReflect.Descriptor instead.
 func (*DuelState) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{7}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DuelState) GetActive() bool {
@@ -1219,7 +1539,7 @@ type Lot struct {
 
 func (x *Lot) Reset() {
 	*x = Lot{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[8]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1231,7 +1551,7 @@ func (x *Lot) String() string {
 func (*Lot) ProtoMessage() {}
 
 func (x *Lot) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[8]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1244,7 +1564,7 @@ func (x *Lot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Lot.ProtoReflect.Descriptor instead.
 func (*Lot) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{8}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Lot) GetId() string {
@@ -1523,7 +1843,7 @@ type RoomSnapshot struct {
 
 func (x *RoomSnapshot) Reset() {
 	*x = RoomSnapshot{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[9]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1535,7 +1855,7 @@ func (x *RoomSnapshot) String() string {
 func (*RoomSnapshot) ProtoMessage() {}
 
 func (x *RoomSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[9]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1548,7 +1868,7 @@ func (x *RoomSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RoomSnapshot.ProtoReflect.Descriptor instead.
 func (*RoomSnapshot) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{9}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RoomSnapshot) GetRoomId() string {
@@ -1640,7 +1960,7 @@ type RoomPresence struct {
 
 func (x *RoomPresence) Reset() {
 	*x = RoomPresence{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[10]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1652,7 +1972,7 @@ func (x *RoomPresence) String() string {
 func (*RoomPresence) ProtoMessage() {}
 
 func (x *RoomPresence) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[10]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1665,7 +1985,7 @@ func (x *RoomPresence) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RoomPresence.ProtoReflect.Descriptor instead.
 func (*RoomPresence) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{10}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *RoomPresence) GetRoomId() string {
@@ -1740,7 +2060,7 @@ type AuctionEvent struct {
 
 func (x *AuctionEvent) Reset() {
 	*x = AuctionEvent{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[11]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1752,7 +2072,7 @@ func (x *AuctionEvent) String() string {
 func (*AuctionEvent) ProtoMessage() {}
 
 func (x *AuctionEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[11]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1765,7 +2085,7 @@ func (x *AuctionEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuctionEvent.ProtoReflect.Descriptor instead.
 func (*AuctionEvent) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{11}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *AuctionEvent) GetId() string {
@@ -1894,7 +2214,7 @@ type CreateLotRequest struct {
 
 func (x *CreateLotRequest) Reset() {
 	*x = CreateLotRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[12]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1906,7 +2226,7 @@ func (x *CreateLotRequest) String() string {
 func (*CreateLotRequest) ProtoMessage() {}
 
 func (x *CreateLotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[12]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1919,7 +2239,7 @@ func (x *CreateLotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateLotRequest.ProtoReflect.Descriptor instead.
 func (*CreateLotRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{12}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CreateLotRequest) GetRoomId() string {
@@ -2051,7 +2371,7 @@ type PatchLotDraftRequest struct {
 
 func (x *PatchLotDraftRequest) Reset() {
 	*x = PatchLotDraftRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[13]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2063,7 +2383,7 @@ func (x *PatchLotDraftRequest) String() string {
 func (*PatchLotDraftRequest) ProtoMessage() {}
 
 func (x *PatchLotDraftRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[13]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2076,7 +2396,7 @@ func (x *PatchLotDraftRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PatchLotDraftRequest.ProtoReflect.Descriptor instead.
 func (*PatchLotDraftRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{13}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *PatchLotDraftRequest) GetLotId() string {
@@ -2188,7 +2508,7 @@ type QueueLotRequest struct {
 
 func (x *QueueLotRequest) Reset() {
 	*x = QueueLotRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[14]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2200,7 +2520,7 @@ func (x *QueueLotRequest) String() string {
 func (*QueueLotRequest) ProtoMessage() {}
 
 func (x *QueueLotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[14]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2213,7 +2533,7 @@ func (x *QueueLotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueLotRequest.ProtoReflect.Descriptor instead.
 func (*QueueLotRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{14}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *QueueLotRequest) GetLotId() string {
@@ -2234,7 +2554,7 @@ type GetLotRequest struct {
 
 func (x *GetLotRequest) Reset() {
 	*x = GetLotRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[15]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2246,7 +2566,7 @@ func (x *GetLotRequest) String() string {
 func (*GetLotRequest) ProtoMessage() {}
 
 func (x *GetLotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[15]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2259,7 +2579,7 @@ func (x *GetLotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLotRequest.ProtoReflect.Descriptor instead.
 func (*GetLotRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{15}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetLotRequest) GetLotId() string {
@@ -2286,7 +2606,7 @@ type ListLotsRequest struct {
 
 func (x *ListLotsRequest) Reset() {
 	*x = ListLotsRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[16]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2298,7 +2618,7 @@ func (x *ListLotsRequest) String() string {
 func (*ListLotsRequest) ProtoMessage() {}
 
 func (x *ListLotsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[16]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2311,7 +2631,7 @@ func (x *ListLotsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLotsRequest.ProtoReflect.Descriptor instead.
 func (*ListLotsRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{16}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListLotsRequest) GetRoomId() string {
@@ -2353,7 +2673,7 @@ type StartLotRequest struct {
 
 func (x *StartLotRequest) Reset() {
 	*x = StartLotRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[17]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2365,7 +2685,7 @@ func (x *StartLotRequest) String() string {
 func (*StartLotRequest) ProtoMessage() {}
 
 func (x *StartLotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[17]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2378,7 +2698,7 @@ func (x *StartLotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartLotRequest.ProtoReflect.Descriptor instead.
 func (*StartLotRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{17}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *StartLotRequest) GetLotId() string {
@@ -2407,7 +2727,7 @@ type PlaceBidRequest struct {
 
 func (x *PlaceBidRequest) Reset() {
 	*x = PlaceBidRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[18]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2419,7 +2739,7 @@ func (x *PlaceBidRequest) String() string {
 func (*PlaceBidRequest) ProtoMessage() {}
 
 func (x *PlaceBidRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[18]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2432,7 +2752,7 @@ func (x *PlaceBidRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlaceBidRequest.ProtoReflect.Descriptor instead.
 func (*PlaceBidRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{18}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *PlaceBidRequest) GetLotId() string {
@@ -2478,7 +2798,7 @@ type RevealTrustCardRequest struct {
 
 func (x *RevealTrustCardRequest) Reset() {
 	*x = RevealTrustCardRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[19]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2490,7 +2810,7 @@ func (x *RevealTrustCardRequest) String() string {
 func (*RevealTrustCardRequest) ProtoMessage() {}
 
 func (x *RevealTrustCardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[19]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2503,7 +2823,7 @@ func (x *RevealTrustCardRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevealTrustCardRequest.ProtoReflect.Descriptor instead.
 func (*RevealTrustCardRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{19}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *RevealTrustCardRequest) GetLotId() string {
@@ -2544,7 +2864,7 @@ type StartDuelRequest struct {
 
 func (x *StartDuelRequest) Reset() {
 	*x = StartDuelRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[20]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2556,7 +2876,7 @@ func (x *StartDuelRequest) String() string {
 func (*StartDuelRequest) ProtoMessage() {}
 
 func (x *StartDuelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[20]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2569,7 +2889,7 @@ func (x *StartDuelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartDuelRequest.ProtoReflect.Descriptor instead.
 func (*StartDuelRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{20}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *StartDuelRequest) GetLotId() string {
@@ -2613,7 +2933,7 @@ type SettleLotRequest struct {
 
 func (x *SettleLotRequest) Reset() {
 	*x = SettleLotRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[21]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2625,7 +2945,7 @@ func (x *SettleLotRequest) String() string {
 func (*SettleLotRequest) ProtoMessage() {}
 
 func (x *SettleLotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[21]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2638,7 +2958,7 @@ func (x *SettleLotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SettleLotRequest.ProtoReflect.Descriptor instead.
 func (*SettleLotRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{21}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *SettleLotRequest) GetLotId() string {
@@ -2667,7 +2987,7 @@ type CancelLotRequest struct {
 
 func (x *CancelLotRequest) Reset() {
 	*x = CancelLotRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[22]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2679,7 +2999,7 @@ func (x *CancelLotRequest) String() string {
 func (*CancelLotRequest) ProtoMessage() {}
 
 func (x *CancelLotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[22]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2692,7 +3012,7 @@ func (x *CancelLotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelLotRequest.ProtoReflect.Descriptor instead.
 func (*CancelLotRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{22}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CancelLotRequest) GetLotId() string {
@@ -2727,7 +3047,7 @@ type GetRoomSnapshotRequest struct {
 
 func (x *GetRoomSnapshotRequest) Reset() {
 	*x = GetRoomSnapshotRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[23]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2739,7 +3059,7 @@ func (x *GetRoomSnapshotRequest) String() string {
 func (*GetRoomSnapshotRequest) ProtoMessage() {}
 
 func (x *GetRoomSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[23]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2752,7 +3072,7 @@ func (x *GetRoomSnapshotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRoomSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetRoomSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{23}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetRoomSnapshotRequest) GetRoomId() string {
@@ -2773,7 +3093,7 @@ type GetRoomPresenceRequest struct {
 
 func (x *GetRoomPresenceRequest) Reset() {
 	*x = GetRoomPresenceRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[24]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2785,7 +3105,7 @@ func (x *GetRoomPresenceRequest) String() string {
 func (*GetRoomPresenceRequest) ProtoMessage() {}
 
 func (x *GetRoomPresenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[24]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2798,7 +3118,7 @@ func (x *GetRoomPresenceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRoomPresenceRequest.ProtoReflect.Descriptor instead.
 func (*GetRoomPresenceRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{24}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetRoomPresenceRequest) GetRoomId() string {
@@ -2823,7 +3143,7 @@ type ListRoomEventsRequest struct {
 
 func (x *ListRoomEventsRequest) Reset() {
 	*x = ListRoomEventsRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[25]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2835,7 +3155,7 @@ func (x *ListRoomEventsRequest) String() string {
 func (*ListRoomEventsRequest) ProtoMessage() {}
 
 func (x *ListRoomEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[25]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2848,7 +3168,7 @@ func (x *ListRoomEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRoomEventsRequest.ProtoReflect.Descriptor instead.
 func (*ListRoomEventsRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{25}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListRoomEventsRequest) GetRoomId() string {
@@ -2891,7 +3211,7 @@ type BuyerConsultRequest struct {
 
 func (x *BuyerConsultRequest) Reset() {
 	*x = BuyerConsultRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[26]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2903,7 +3223,7 @@ func (x *BuyerConsultRequest) String() string {
 func (*BuyerConsultRequest) ProtoMessage() {}
 
 func (x *BuyerConsultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[26]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2916,7 +3236,7 @@ func (x *BuyerConsultRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuyerConsultRequest.ProtoReflect.Descriptor instead.
 func (*BuyerConsultRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{26}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *BuyerConsultRequest) GetQuery() string {
@@ -2963,7 +3283,7 @@ type GetLotResultRequest struct {
 
 func (x *GetLotResultRequest) Reset() {
 	*x = GetLotResultRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[27]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2975,7 +3295,7 @@ func (x *GetLotResultRequest) String() string {
 func (*GetLotResultRequest) ProtoMessage() {}
 
 func (x *GetLotResultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[27]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2988,7 +3308,7 @@ func (x *GetLotResultRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLotResultRequest.ProtoReflect.Descriptor instead.
 func (*GetLotResultRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{27}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *GetLotResultRequest) GetLotId() string {
@@ -3012,7 +3332,7 @@ type ListAuctionOrdersRequest struct {
 
 func (x *ListAuctionOrdersRequest) Reset() {
 	*x = ListAuctionOrdersRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[28]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3024,7 +3344,7 @@ func (x *ListAuctionOrdersRequest) String() string {
 func (*ListAuctionOrdersRequest) ProtoMessage() {}
 
 func (x *ListAuctionOrdersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[28]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3037,7 +3357,7 @@ func (x *ListAuctionOrdersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuctionOrdersRequest.ProtoReflect.Descriptor instead.
 func (*ListAuctionOrdersRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{28}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ListAuctionOrdersRequest) GetPage() int32 {
@@ -3093,7 +3413,7 @@ type ListBidRecordsRequest struct {
 
 func (x *ListBidRecordsRequest) Reset() {
 	*x = ListBidRecordsRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[29]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3105,7 +3425,7 @@ func (x *ListBidRecordsRequest) String() string {
 func (*ListBidRecordsRequest) ProtoMessage() {}
 
 func (x *ListBidRecordsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[29]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3118,7 +3438,7 @@ func (x *ListBidRecordsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBidRecordsRequest.ProtoReflect.Descriptor instead.
 func (*ListBidRecordsRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{29}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListBidRecordsRequest) GetPage() int32 {
@@ -3156,7 +3476,7 @@ type ListAdminLotPageRequest struct {
 
 func (x *ListAdminLotPageRequest) Reset() {
 	*x = ListAdminLotPageRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[30]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3168,7 +3488,7 @@ func (x *ListAdminLotPageRequest) String() string {
 func (*ListAdminLotPageRequest) ProtoMessage() {}
 
 func (x *ListAdminLotPageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[30]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3181,7 +3501,7 @@ func (x *ListAdminLotPageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAdminLotPageRequest.ProtoReflect.Descriptor instead.
 func (*ListAdminLotPageRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{30}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ListAdminLotPageRequest) GetPage() int32 {
@@ -3234,7 +3554,7 @@ type ListAdminRoomsRequest struct {
 
 func (x *ListAdminRoomsRequest) Reset() {
 	*x = ListAdminRoomsRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[31]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3246,7 +3566,7 @@ func (x *ListAdminRoomsRequest) String() string {
 func (*ListAdminRoomsRequest) ProtoMessage() {}
 
 func (x *ListAdminRoomsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[31]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3259,7 +3579,7 @@ func (x *ListAdminRoomsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAdminRoomsRequest.ProtoReflect.Descriptor instead.
 func (*ListAdminRoomsRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{31}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{35}
 }
 
 type ListPublicRoomsRequest struct {
@@ -3270,7 +3590,7 @@ type ListPublicRoomsRequest struct {
 
 func (x *ListPublicRoomsRequest) Reset() {
 	*x = ListPublicRoomsRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[32]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3282,7 +3602,7 @@ func (x *ListPublicRoomsRequest) String() string {
 func (*ListPublicRoomsRequest) ProtoMessage() {}
 
 func (x *ListPublicRoomsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[32]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3295,7 +3615,7 @@ func (x *ListPublicRoomsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPublicRoomsRequest.ProtoReflect.Descriptor instead.
 func (*ListPublicRoomsRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{32}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{36}
 }
 
 type ListBuyerSuggestionsRequest struct {
@@ -3307,7 +3627,7 @@ type ListBuyerSuggestionsRequest struct {
 
 func (x *ListBuyerSuggestionsRequest) Reset() {
 	*x = ListBuyerSuggestionsRequest{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[33]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3319,7 +3639,7 @@ func (x *ListBuyerSuggestionsRequest) String() string {
 func (*ListBuyerSuggestionsRequest) ProtoMessage() {}
 
 func (x *ListBuyerSuggestionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[33]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3332,7 +3652,7 @@ func (x *ListBuyerSuggestionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBuyerSuggestionsRequest.ProtoReflect.Descriptor instead.
 func (*ListBuyerSuggestionsRequest) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{33}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ListBuyerSuggestionsRequest) GetLimit() int32 {
@@ -3340,6 +3660,867 @@ func (x *ListBuyerSuggestionsRequest) GetLimit() int32 {
 		return x.Limit
 	}
 	return 0
+}
+
+// 后台仪表盘请求不接受租户字段；租户始终从认证 claims 中派生。
+type GetAdminDashboardRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Range         string                 `protobuf:"bytes,1,opt,name=range,proto3" json:"range,omitempty"`
+	Timezone      string                 `protobuf:"bytes,2,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	Sections      []string               `protobuf:"bytes,3,rep,name=sections,proto3" json:"sections,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAdminDashboardRequest) Reset() {
+	*x = GetAdminDashboardRequest{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAdminDashboardRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAdminDashboardRequest) ProtoMessage() {}
+
+func (x *GetAdminDashboardRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAdminDashboardRequest.ProtoReflect.Descriptor instead.
+func (*GetAdminDashboardRequest) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *GetAdminDashboardRequest) GetRange() string {
+	if x != nil {
+		return x.Range
+	}
+	return ""
+}
+
+func (x *GetAdminDashboardRequest) GetTimezone() string {
+	if x != nil {
+		return x.Timezone
+	}
+	return ""
+}
+
+func (x *GetAdminDashboardRequest) GetSections() []string {
+	if x != nil {
+		return x.Sections
+	}
+	return nil
+}
+
+type DashboardRatio struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Numerator     int64                  `protobuf:"varint,1,opt,name=numerator,proto3" json:"numerator,omitempty"`
+	Denominator   int64                  `protobuf:"varint,2,opt,name=denominator,proto3" json:"denominator,omitempty"`
+	Rate          float64                `protobuf:"fixed64,3,opt,name=rate,proto3" json:"rate,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DashboardRatio) Reset() {
+	*x = DashboardRatio{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DashboardRatio) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DashboardRatio) ProtoMessage() {}
+
+func (x *DashboardRatio) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DashboardRatio.ProtoReflect.Descriptor instead.
+func (*DashboardRatio) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *DashboardRatio) GetNumerator() int64 {
+	if x != nil {
+		return x.Numerator
+	}
+	return 0
+}
+
+func (x *DashboardRatio) GetDenominator() int64 {
+	if x != nil {
+		return x.Denominator
+	}
+	return 0
+}
+
+func (x *DashboardRatio) GetRate() float64 {
+	if x != nil {
+		return x.Rate
+	}
+	return 0
+}
+
+type DashboardRange struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Range         string                 `protobuf:"bytes,1,opt,name=range,proto3" json:"range,omitempty"`
+	Timezone      string                 `protobuf:"bytes,2,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	StartUnixMs   int64                  `protobuf:"varint,3,opt,name=start_unix_ms,json=startUnixMs,proto3" json:"start_unix_ms,omitempty"`
+	EndUnixMs     int64                  `protobuf:"varint,4,opt,name=end_unix_ms,json=endUnixMs,proto3" json:"end_unix_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DashboardRange) Reset() {
+	*x = DashboardRange{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DashboardRange) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DashboardRange) ProtoMessage() {}
+
+func (x *DashboardRange) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DashboardRange.ProtoReflect.Descriptor instead.
+func (*DashboardRange) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *DashboardRange) GetRange() string {
+	if x != nil {
+		return x.Range
+	}
+	return ""
+}
+
+func (x *DashboardRange) GetTimezone() string {
+	if x != nil {
+		return x.Timezone
+	}
+	return ""
+}
+
+func (x *DashboardRange) GetStartUnixMs() int64 {
+	if x != nil {
+		return x.StartUnixMs
+	}
+	return 0
+}
+
+func (x *DashboardRange) GetEndUnixMs() int64 {
+	if x != nil {
+		return x.EndUnixMs
+	}
+	return 0
+}
+
+type DashboardSummary struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	GmvAmount           int64                  `protobuf:"varint,1,opt,name=gmv_amount,json=gmvAmount,proto3" json:"gmv_amount,omitempty"`
+	PaidAmount          int64                  `protobuf:"varint,2,opt,name=paid_amount,json=paidAmount,proto3" json:"paid_amount,omitempty"`
+	PendingAmount       int64                  `protobuf:"varint,3,opt,name=pending_amount,json=pendingAmount,proto3" json:"pending_amount,omitempty"`
+	OrderCount          int64                  `protobuf:"varint,4,opt,name=order_count,json=orderCount,proto3" json:"order_count,omitempty"`
+	CancelledOrderCount int64                  `protobuf:"varint,5,opt,name=cancelled_order_count,json=cancelledOrderCount,proto3" json:"cancelled_order_count,omitempty"`
+	ParticipantCount    int64                  `protobuf:"varint,6,opt,name=participant_count,json=participantCount,proto3" json:"participant_count,omitempty"`
+	AverageDealAmount   int64                  `protobuf:"varint,7,opt,name=average_deal_amount,json=averageDealAmount,proto3" json:"average_deal_amount,omitempty"`
+	PaymentRate         *DashboardRatio        `protobuf:"bytes,8,opt,name=payment_rate,json=paymentRate,proto3" json:"payment_rate,omitempty"`
+	DealRate            *DashboardRatio        `protobuf:"bytes,9,opt,name=deal_rate,json=dealRate,proto3" json:"deal_rate,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *DashboardSummary) Reset() {
+	*x = DashboardSummary{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DashboardSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DashboardSummary) ProtoMessage() {}
+
+func (x *DashboardSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DashboardSummary.ProtoReflect.Descriptor instead.
+func (*DashboardSummary) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *DashboardSummary) GetGmvAmount() int64 {
+	if x != nil {
+		return x.GmvAmount
+	}
+	return 0
+}
+
+func (x *DashboardSummary) GetPaidAmount() int64 {
+	if x != nil {
+		return x.PaidAmount
+	}
+	return 0
+}
+
+func (x *DashboardSummary) GetPendingAmount() int64 {
+	if x != nil {
+		return x.PendingAmount
+	}
+	return 0
+}
+
+func (x *DashboardSummary) GetOrderCount() int64 {
+	if x != nil {
+		return x.OrderCount
+	}
+	return 0
+}
+
+func (x *DashboardSummary) GetCancelledOrderCount() int64 {
+	if x != nil {
+		return x.CancelledOrderCount
+	}
+	return 0
+}
+
+func (x *DashboardSummary) GetParticipantCount() int64 {
+	if x != nil {
+		return x.ParticipantCount
+	}
+	return 0
+}
+
+func (x *DashboardSummary) GetAverageDealAmount() int64 {
+	if x != nil {
+		return x.AverageDealAmount
+	}
+	return 0
+}
+
+func (x *DashboardSummary) GetPaymentRate() *DashboardRatio {
+	if x != nil {
+		return x.PaymentRate
+	}
+	return nil
+}
+
+func (x *DashboardSummary) GetDealRate() *DashboardRatio {
+	if x != nil {
+		return x.DealRate
+	}
+	return nil
+}
+
+type DashboardFunnel struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	CreatedLotCount int64                  `protobuf:"varint,1,opt,name=created_lot_count,json=createdLotCount,proto3" json:"created_lot_count,omitempty"`
+	ListedLotCount  int64                  `protobuf:"varint,2,opt,name=listed_lot_count,json=listedLotCount,proto3" json:"listed_lot_count,omitempty"`
+	StartedLotCount int64                  `protobuf:"varint,3,opt,name=started_lot_count,json=startedLotCount,proto3" json:"started_lot_count,omitempty"`
+	BidLotCount     int64                  `protobuf:"varint,4,opt,name=bid_lot_count,json=bidLotCount,proto3" json:"bid_lot_count,omitempty"`
+	SettledLotCount int64                  `protobuf:"varint,5,opt,name=settled_lot_count,json=settledLotCount,proto3" json:"settled_lot_count,omitempty"`
+	PaidLotCount    int64                  `protobuf:"varint,6,opt,name=paid_lot_count,json=paidLotCount,proto3" json:"paid_lot_count,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *DashboardFunnel) Reset() {
+	*x = DashboardFunnel{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DashboardFunnel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DashboardFunnel) ProtoMessage() {}
+
+func (x *DashboardFunnel) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DashboardFunnel.ProtoReflect.Descriptor instead.
+func (*DashboardFunnel) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *DashboardFunnel) GetCreatedLotCount() int64 {
+	if x != nil {
+		return x.CreatedLotCount
+	}
+	return 0
+}
+
+func (x *DashboardFunnel) GetListedLotCount() int64 {
+	if x != nil {
+		return x.ListedLotCount
+	}
+	return 0
+}
+
+func (x *DashboardFunnel) GetStartedLotCount() int64 {
+	if x != nil {
+		return x.StartedLotCount
+	}
+	return 0
+}
+
+func (x *DashboardFunnel) GetBidLotCount() int64 {
+	if x != nil {
+		return x.BidLotCount
+	}
+	return 0
+}
+
+func (x *DashboardFunnel) GetSettledLotCount() int64 {
+	if x != nil {
+		return x.SettledLotCount
+	}
+	return 0
+}
+
+func (x *DashboardFunnel) GetPaidLotCount() int64 {
+	if x != nil {
+		return x.PaidLotCount
+	}
+	return 0
+}
+
+type DashboardTrendPoint struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartUnixMs   int64                  `protobuf:"varint,1,opt,name=start_unix_ms,json=startUnixMs,proto3" json:"start_unix_ms,omitempty"`
+	EndUnixMs     int64                  `protobuf:"varint,2,opt,name=end_unix_ms,json=endUnixMs,proto3" json:"end_unix_ms,omitempty"`
+	PaidAmount    int64                  `protobuf:"varint,3,opt,name=paid_amount,json=paidAmount,proto3" json:"paid_amount,omitempty"`
+	PaidOrders    int64                  `protobuf:"varint,4,opt,name=paid_orders,json=paidOrders,proto3" json:"paid_orders,omitempty"`
+	Bidders       int64                  `protobuf:"varint,5,opt,name=bidders,proto3" json:"bidders,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DashboardTrendPoint) Reset() {
+	*x = DashboardTrendPoint{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DashboardTrendPoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DashboardTrendPoint) ProtoMessage() {}
+
+func (x *DashboardTrendPoint) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DashboardTrendPoint.ProtoReflect.Descriptor instead.
+func (*DashboardTrendPoint) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *DashboardTrendPoint) GetStartUnixMs() int64 {
+	if x != nil {
+		return x.StartUnixMs
+	}
+	return 0
+}
+
+func (x *DashboardTrendPoint) GetEndUnixMs() int64 {
+	if x != nil {
+		return x.EndUnixMs
+	}
+	return 0
+}
+
+func (x *DashboardTrendPoint) GetPaidAmount() int64 {
+	if x != nil {
+		return x.PaidAmount
+	}
+	return 0
+}
+
+func (x *DashboardTrendPoint) GetPaidOrders() int64 {
+	if x != nil {
+		return x.PaidOrders
+	}
+	return 0
+}
+
+func (x *DashboardTrendPoint) GetBidders() int64 {
+	if x != nil {
+		return x.Bidders
+	}
+	return 0
+}
+
+type DashboardTopLot struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	LotId            string                 `protobuf:"bytes,1,opt,name=lot_id,json=lotId,proto3" json:"lot_id,omitempty"`
+	Title            string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Category         string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
+	PaidAmount       int64                  `protobuf:"varint,4,opt,name=paid_amount,json=paidAmount,proto3" json:"paid_amount,omitempty"`
+	FinalAmount      int64                  `protobuf:"varint,5,opt,name=final_amount,json=finalAmount,proto3" json:"final_amount,omitempty"`
+	BidCount         int64                  `protobuf:"varint,6,opt,name=bid_count,json=bidCount,proto3" json:"bid_count,omitempty"`
+	ParticipantCount int64                  `protobuf:"varint,7,opt,name=participant_count,json=participantCount,proto3" json:"participant_count,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *DashboardTopLot) Reset() {
+	*x = DashboardTopLot{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DashboardTopLot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DashboardTopLot) ProtoMessage() {}
+
+func (x *DashboardTopLot) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DashboardTopLot.ProtoReflect.Descriptor instead.
+func (*DashboardTopLot) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *DashboardTopLot) GetLotId() string {
+	if x != nil {
+		return x.LotId
+	}
+	return ""
+}
+
+func (x *DashboardTopLot) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *DashboardTopLot) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *DashboardTopLot) GetPaidAmount() int64 {
+	if x != nil {
+		return x.PaidAmount
+	}
+	return 0
+}
+
+func (x *DashboardTopLot) GetFinalAmount() int64 {
+	if x != nil {
+		return x.FinalAmount
+	}
+	return 0
+}
+
+func (x *DashboardTopLot) GetBidCount() int64 {
+	if x != nil {
+		return x.BidCount
+	}
+	return 0
+}
+
+func (x *DashboardTopLot) GetParticipantCount() int64 {
+	if x != nil {
+		return x.ParticipantCount
+	}
+	return 0
+}
+
+type DashboardCategoryPerformance struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Category        string                 `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
+	PaidAmount      int64                  `protobuf:"varint,2,opt,name=paid_amount,json=paidAmount,proto3" json:"paid_amount,omitempty"`
+	StartedLotCount int64                  `protobuf:"varint,3,opt,name=started_lot_count,json=startedLotCount,proto3" json:"started_lot_count,omitempty"`
+	SettledLotCount int64                  `protobuf:"varint,4,opt,name=settled_lot_count,json=settledLotCount,proto3" json:"settled_lot_count,omitempty"`
+	DealRate        *DashboardRatio        `protobuf:"bytes,5,opt,name=deal_rate,json=dealRate,proto3" json:"deal_rate,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *DashboardCategoryPerformance) Reset() {
+	*x = DashboardCategoryPerformance{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DashboardCategoryPerformance) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DashboardCategoryPerformance) ProtoMessage() {}
+
+func (x *DashboardCategoryPerformance) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DashboardCategoryPerformance.ProtoReflect.Descriptor instead.
+func (*DashboardCategoryPerformance) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *DashboardCategoryPerformance) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *DashboardCategoryPerformance) GetPaidAmount() int64 {
+	if x != nil {
+		return x.PaidAmount
+	}
+	return 0
+}
+
+func (x *DashboardCategoryPerformance) GetStartedLotCount() int64 {
+	if x != nil {
+		return x.StartedLotCount
+	}
+	return 0
+}
+
+func (x *DashboardCategoryPerformance) GetSettledLotCount() int64 {
+	if x != nil {
+		return x.SettledLotCount
+	}
+	return 0
+}
+
+func (x *DashboardCategoryPerformance) GetDealRate() *DashboardRatio {
+	if x != nil {
+		return x.DealRate
+	}
+	return nil
+}
+
+type DashboardOrderRisks struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	PendingPaymentCount int64                  `protobuf:"varint,1,opt,name=pending_payment_count,json=pendingPaymentCount,proto3" json:"pending_payment_count,omitempty"`
+	ExpiringSoonCount   int64                  `protobuf:"varint,2,opt,name=expiring_soon_count,json=expiringSoonCount,proto3" json:"expiring_soon_count,omitempty"`
+	ExpiredCount        int64                  `protobuf:"varint,3,opt,name=expired_count,json=expiredCount,proto3" json:"expired_count,omitempty"`
+	PaymentFailedCount  int64                  `protobuf:"varint,4,opt,name=payment_failed_count,json=paymentFailedCount,proto3" json:"payment_failed_count,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *DashboardOrderRisks) Reset() {
+	*x = DashboardOrderRisks{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DashboardOrderRisks) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DashboardOrderRisks) ProtoMessage() {}
+
+func (x *DashboardOrderRisks) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DashboardOrderRisks.ProtoReflect.Descriptor instead.
+func (*DashboardOrderRisks) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *DashboardOrderRisks) GetPendingPaymentCount() int64 {
+	if x != nil {
+		return x.PendingPaymentCount
+	}
+	return 0
+}
+
+func (x *DashboardOrderRisks) GetExpiringSoonCount() int64 {
+	if x != nil {
+		return x.ExpiringSoonCount
+	}
+	return 0
+}
+
+func (x *DashboardOrderRisks) GetExpiredCount() int64 {
+	if x != nil {
+		return x.ExpiredCount
+	}
+	return 0
+}
+
+func (x *DashboardOrderRisks) GetPaymentFailedCount() int64 {
+	if x != nil {
+		return x.PaymentFailedCount
+	}
+	return 0
+}
+
+type DashboardLotPerformance struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	LotId            string                 `protobuf:"bytes,1,opt,name=lot_id,json=lotId,proto3" json:"lot_id,omitempty"`
+	Title            string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Category         string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
+	Status           string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	BidCount         int64                  `protobuf:"varint,5,opt,name=bid_count,json=bidCount,proto3" json:"bid_count,omitempty"`
+	ParticipantCount int64                  `protobuf:"varint,6,opt,name=participant_count,json=participantCount,proto3" json:"participant_count,omitempty"`
+	FinalAmount      int64                  `protobuf:"varint,7,opt,name=final_amount,json=finalAmount,proto3" json:"final_amount,omitempty"`
+	PaidAmount       int64                  `protobuf:"varint,8,opt,name=paid_amount,json=paidAmount,proto3" json:"paid_amount,omitempty"`
+	ConversionRate   *DashboardRatio        `protobuf:"bytes,9,opt,name=conversion_rate,json=conversionRate,proto3" json:"conversion_rate,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *DashboardLotPerformance) Reset() {
+	*x = DashboardLotPerformance{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DashboardLotPerformance) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DashboardLotPerformance) ProtoMessage() {}
+
+func (x *DashboardLotPerformance) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DashboardLotPerformance.ProtoReflect.Descriptor instead.
+func (*DashboardLotPerformance) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *DashboardLotPerformance) GetLotId() string {
+	if x != nil {
+		return x.LotId
+	}
+	return ""
+}
+
+func (x *DashboardLotPerformance) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *DashboardLotPerformance) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *DashboardLotPerformance) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *DashboardLotPerformance) GetBidCount() int64 {
+	if x != nil {
+		return x.BidCount
+	}
+	return 0
+}
+
+func (x *DashboardLotPerformance) GetParticipantCount() int64 {
+	if x != nil {
+		return x.ParticipantCount
+	}
+	return 0
+}
+
+func (x *DashboardLotPerformance) GetFinalAmount() int64 {
+	if x != nil {
+		return x.FinalAmount
+	}
+	return 0
+}
+
+func (x *DashboardLotPerformance) GetPaidAmount() int64 {
+	if x != nil {
+		return x.PaidAmount
+	}
+	return 0
+}
+
+func (x *DashboardLotPerformance) GetConversionRate() *DashboardRatio {
+	if x != nil {
+		return x.ConversionRate
+	}
+	return nil
+}
+
+type DashboardPartialError struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Section       string                 `protobuf:"bytes,1,opt,name=section,proto3" json:"section,omitempty"`
+	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DashboardPartialError) Reset() {
+	*x = DashboardPartialError{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DashboardPartialError) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DashboardPartialError) ProtoMessage() {}
+
+func (x *DashboardPartialError) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DashboardPartialError.ProtoReflect.Descriptor instead.
+func (*DashboardPartialError) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *DashboardPartialError) GetSection() string {
+	if x != nil {
+		return x.Section
+	}
+	return ""
+}
+
+func (x *DashboardPartialError) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *DashboardPartialError) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
 }
 
 type AuctionDeliveryAddressSnapshot struct {
@@ -3360,7 +4541,7 @@ type AuctionDeliveryAddressSnapshot struct {
 
 func (x *AuctionDeliveryAddressSnapshot) Reset() {
 	*x = AuctionDeliveryAddressSnapshot{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[34]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3372,7 +4553,7 @@ func (x *AuctionDeliveryAddressSnapshot) String() string {
 func (*AuctionDeliveryAddressSnapshot) ProtoMessage() {}
 
 func (x *AuctionDeliveryAddressSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[34]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3385,7 +4566,7 @@ func (x *AuctionDeliveryAddressSnapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuctionDeliveryAddressSnapshot.ProtoReflect.Descriptor instead.
 func (*AuctionDeliveryAddressSnapshot) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{34}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *AuctionDeliveryAddressSnapshot) GetAddressId() string {
@@ -3489,7 +4670,7 @@ type AuctionOrderSummary struct {
 
 func (x *AuctionOrderSummary) Reset() {
 	*x = AuctionOrderSummary{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[35]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3501,7 +4682,7 @@ func (x *AuctionOrderSummary) String() string {
 func (*AuctionOrderSummary) ProtoMessage() {}
 
 func (x *AuctionOrderSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[35]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3514,7 +4695,7 @@ func (x *AuctionOrderSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuctionOrderSummary.ProtoReflect.Descriptor instead.
 func (*AuctionOrderSummary) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{35}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *AuctionOrderSummary) GetId() string {
@@ -3699,7 +4880,7 @@ type AuctionBidRecord struct {
 
 func (x *AuctionBidRecord) Reset() {
 	*x = AuctionBidRecord{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[36]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3711,7 +4892,7 @@ func (x *AuctionBidRecord) String() string {
 func (*AuctionBidRecord) ProtoMessage() {}
 
 func (x *AuctionBidRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[36]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3724,7 +4905,7 @@ func (x *AuctionBidRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuctionBidRecord.ProtoReflect.Descriptor instead.
 func (*AuctionBidRecord) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{36}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *AuctionBidRecord) GetId() string {
@@ -3837,7 +5018,7 @@ type AuctionRoom struct {
 
 func (x *AuctionRoom) Reset() {
 	*x = AuctionRoom{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[37]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3849,7 +5030,7 @@ func (x *AuctionRoom) String() string {
 func (*AuctionRoom) ProtoMessage() {}
 
 func (x *AuctionRoom) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[37]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3862,7 +5043,7 @@ func (x *AuctionRoom) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuctionRoom.ProtoReflect.Descriptor instead.
 func (*AuctionRoom) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{37}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *AuctionRoom) GetId() string {
@@ -3952,7 +5133,7 @@ type BuyerSuggestion struct {
 
 func (x *BuyerSuggestion) Reset() {
 	*x = BuyerSuggestion{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[38]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3964,7 +5145,7 @@ func (x *BuyerSuggestion) String() string {
 func (*BuyerSuggestion) ProtoMessage() {}
 
 func (x *BuyerSuggestion) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[38]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3977,7 +5158,7 @@ func (x *BuyerSuggestion) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuyerSuggestion.ProtoReflect.Descriptor instead.
 func (*BuyerSuggestion) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{38}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *BuyerSuggestion) GetText() string {
@@ -4007,7 +5188,7 @@ type CreateLotReply struct {
 
 func (x *CreateLotReply) Reset() {
 	*x = CreateLotReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[39]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4019,7 +5200,7 @@ func (x *CreateLotReply) String() string {
 func (*CreateLotReply) ProtoMessage() {}
 
 func (x *CreateLotReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[39]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4032,7 +5213,7 @@ func (x *CreateLotReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateLotReply.ProtoReflect.Descriptor instead.
 func (*CreateLotReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{39}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *CreateLotReply) GetLot() *Lot {
@@ -4062,7 +5243,7 @@ type PatchLotDraftReply struct {
 
 func (x *PatchLotDraftReply) Reset() {
 	*x = PatchLotDraftReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[40]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4074,7 +5255,7 @@ func (x *PatchLotDraftReply) String() string {
 func (*PatchLotDraftReply) ProtoMessage() {}
 
 func (x *PatchLotDraftReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[40]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4087,7 +5268,7 @@ func (x *PatchLotDraftReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PatchLotDraftReply.ProtoReflect.Descriptor instead.
 func (*PatchLotDraftReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{40}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *PatchLotDraftReply) GetLot() *Lot {
@@ -4121,7 +5302,7 @@ type QueueLotReply struct {
 
 func (x *QueueLotReply) Reset() {
 	*x = QueueLotReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[41]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4133,7 +5314,7 @@ func (x *QueueLotReply) String() string {
 func (*QueueLotReply) ProtoMessage() {}
 
 func (x *QueueLotReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[41]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4146,7 +5327,7 @@ func (x *QueueLotReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueLotReply.ProtoReflect.Descriptor instead.
 func (*QueueLotReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{41}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *QueueLotReply) GetLot() *Lot {
@@ -4190,7 +5371,7 @@ type GetLotReply struct {
 
 func (x *GetLotReply) Reset() {
 	*x = GetLotReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[42]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4202,7 +5383,7 @@ func (x *GetLotReply) String() string {
 func (*GetLotReply) ProtoMessage() {}
 
 func (x *GetLotReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[42]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4215,7 +5396,7 @@ func (x *GetLotReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLotReply.ProtoReflect.Descriptor instead.
 func (*GetLotReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{42}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *GetLotReply) GetLot() *Lot {
@@ -4247,7 +5428,7 @@ type ListLotsReply struct {
 
 func (x *ListLotsReply) Reset() {
 	*x = ListLotsReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[43]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4259,7 +5440,7 @@ func (x *ListLotsReply) String() string {
 func (*ListLotsReply) ProtoMessage() {}
 
 func (x *ListLotsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[43]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4272,7 +5453,7 @@ func (x *ListLotsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLotsReply.ProtoReflect.Descriptor instead.
 func (*ListLotsReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{43}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *ListLotsReply) GetLots() []*Lot {
@@ -4311,7 +5492,7 @@ type StartLotReply struct {
 
 func (x *StartLotReply) Reset() {
 	*x = StartLotReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[44]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4323,7 +5504,7 @@ func (x *StartLotReply) String() string {
 func (*StartLotReply) ProtoMessage() {}
 
 func (x *StartLotReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[44]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4336,7 +5517,7 @@ func (x *StartLotReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartLotReply.ProtoReflect.Descriptor instead.
 func (*StartLotReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{44}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *StartLotReply) GetLot() *Lot {
@@ -4383,7 +5564,7 @@ type PlaceBidReply struct {
 
 func (x *PlaceBidReply) Reset() {
 	*x = PlaceBidReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[45]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4395,7 +5576,7 @@ func (x *PlaceBidReply) String() string {
 func (*PlaceBidReply) ProtoMessage() {}
 
 func (x *PlaceBidReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[45]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4408,7 +5589,7 @@ func (x *PlaceBidReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlaceBidReply.ProtoReflect.Descriptor instead.
 func (*PlaceBidReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{45}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *PlaceBidReply) GetAccepted() bool {
@@ -4477,7 +5658,7 @@ type RevealTrustCardReply struct {
 
 func (x *RevealTrustCardReply) Reset() {
 	*x = RevealTrustCardReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[46]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4489,7 +5670,7 @@ func (x *RevealTrustCardReply) String() string {
 func (*RevealTrustCardReply) ProtoMessage() {}
 
 func (x *RevealTrustCardReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[46]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4502,7 +5683,7 @@ func (x *RevealTrustCardReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevealTrustCardReply.ProtoReflect.Descriptor instead.
 func (*RevealTrustCardReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{46}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *RevealTrustCardReply) GetLot() *Lot {
@@ -4550,7 +5731,7 @@ type StartDuelReply struct {
 
 func (x *StartDuelReply) Reset() {
 	*x = StartDuelReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[47]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4562,7 +5743,7 @@ func (x *StartDuelReply) String() string {
 func (*StartDuelReply) ProtoMessage() {}
 
 func (x *StartDuelReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[47]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4575,7 +5756,7 @@ func (x *StartDuelReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartDuelReply.ProtoReflect.Descriptor instead.
 func (*StartDuelReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{47}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *StartDuelReply) GetLot() *Lot {
@@ -4621,7 +5802,7 @@ type SettleLotReply struct {
 
 func (x *SettleLotReply) Reset() {
 	*x = SettleLotReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[48]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4633,7 +5814,7 @@ func (x *SettleLotReply) String() string {
 func (*SettleLotReply) ProtoMessage() {}
 
 func (x *SettleLotReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[48]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4646,7 +5827,7 @@ func (x *SettleLotReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SettleLotReply.ProtoReflect.Descriptor instead.
 func (*SettleLotReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{48}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *SettleLotReply) GetLot() *Lot {
@@ -4681,7 +5862,7 @@ type CancelLotReply struct {
 
 func (x *CancelLotReply) Reset() {
 	*x = CancelLotReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[49]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4693,7 +5874,7 @@ func (x *CancelLotReply) String() string {
 func (*CancelLotReply) ProtoMessage() {}
 
 func (x *CancelLotReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[49]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4706,7 +5887,7 @@ func (x *CancelLotReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelLotReply.ProtoReflect.Descriptor instead.
 func (*CancelLotReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{49}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *CancelLotReply) GetLot() *Lot {
@@ -4743,7 +5924,7 @@ type GetRoomSnapshotReply struct {
 
 func (x *GetRoomSnapshotReply) Reset() {
 	*x = GetRoomSnapshotReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[50]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4755,7 +5936,7 @@ func (x *GetRoomSnapshotReply) String() string {
 func (*GetRoomSnapshotReply) ProtoMessage() {}
 
 func (x *GetRoomSnapshotReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[50]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4768,7 +5949,7 @@ func (x *GetRoomSnapshotReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRoomSnapshotReply.ProtoReflect.Descriptor instead.
 func (*GetRoomSnapshotReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{50}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *GetRoomSnapshotReply) GetSnapshot() *RoomSnapshot {
@@ -4798,7 +5979,7 @@ type GetRoomPresenceReply struct {
 
 func (x *GetRoomPresenceReply) Reset() {
 	*x = GetRoomPresenceReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[51]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4810,7 +5991,7 @@ func (x *GetRoomPresenceReply) String() string {
 func (*GetRoomPresenceReply) ProtoMessage() {}
 
 func (x *GetRoomPresenceReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[51]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4823,7 +6004,7 @@ func (x *GetRoomPresenceReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRoomPresenceReply.ProtoReflect.Descriptor instead.
 func (*GetRoomPresenceReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{51}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *GetRoomPresenceReply) GetPresence() *RoomPresence {
@@ -4855,7 +6036,7 @@ type ListRoomEventsReply struct {
 
 func (x *ListRoomEventsReply) Reset() {
 	*x = ListRoomEventsReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[52]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4867,7 +6048,7 @@ func (x *ListRoomEventsReply) String() string {
 func (*ListRoomEventsReply) ProtoMessage() {}
 
 func (x *ListRoomEventsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[52]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4880,7 +6061,7 @@ func (x *ListRoomEventsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRoomEventsReply.ProtoReflect.Descriptor instead.
 func (*ListRoomEventsReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{52}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *ListRoomEventsReply) GetEvents() []*AuctionEvent {
@@ -4916,7 +6097,7 @@ type GetLotResultReply struct {
 
 func (x *GetLotResultReply) Reset() {
 	*x = GetLotResultReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[53]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4928,7 +6109,7 @@ func (x *GetLotResultReply) String() string {
 func (*GetLotResultReply) ProtoMessage() {}
 
 func (x *GetLotResultReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[53]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4941,7 +6122,7 @@ func (x *GetLotResultReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLotResultReply.ProtoReflect.Descriptor instead.
 func (*GetLotResultReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{53}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *GetLotResultReply) GetLot() *Lot {
@@ -4985,7 +6166,7 @@ type ListAuctionOrdersReply struct {
 
 func (x *ListAuctionOrdersReply) Reset() {
 	*x = ListAuctionOrdersReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[54]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4997,7 +6178,7 @@ func (x *ListAuctionOrdersReply) String() string {
 func (*ListAuctionOrdersReply) ProtoMessage() {}
 
 func (x *ListAuctionOrdersReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[54]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5010,7 +6191,7 @@ func (x *ListAuctionOrdersReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuctionOrdersReply.ProtoReflect.Descriptor instead.
 func (*ListAuctionOrdersReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{54}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *ListAuctionOrdersReply) GetOrders() []*AuctionOrderSummary {
@@ -5061,7 +6242,7 @@ type ListBidRecordsReply struct {
 
 func (x *ListBidRecordsReply) Reset() {
 	*x = ListBidRecordsReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[55]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5073,7 +6254,7 @@ func (x *ListBidRecordsReply) String() string {
 func (*ListBidRecordsReply) ProtoMessage() {}
 
 func (x *ListBidRecordsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[55]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5086,7 +6267,7 @@ func (x *ListBidRecordsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBidRecordsReply.ProtoReflect.Descriptor instead.
 func (*ListBidRecordsReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{55}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *ListBidRecordsReply) GetBids() []*AuctionBidRecord {
@@ -5137,7 +6318,7 @@ type ListAdminLotPageReply struct {
 
 func (x *ListAdminLotPageReply) Reset() {
 	*x = ListAdminLotPageReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[56]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5149,7 +6330,7 @@ func (x *ListAdminLotPageReply) String() string {
 func (*ListAdminLotPageReply) ProtoMessage() {}
 
 func (x *ListAdminLotPageReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[56]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5162,7 +6343,7 @@ func (x *ListAdminLotPageReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAdminLotPageReply.ProtoReflect.Descriptor instead.
 func (*ListAdminLotPageReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{56}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *ListAdminLotPageReply) GetLots() []*Lot {
@@ -5210,7 +6391,7 @@ type ListRoomsReply struct {
 
 func (x *ListRoomsReply) Reset() {
 	*x = ListRoomsReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[57]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5222,7 +6403,7 @@ func (x *ListRoomsReply) String() string {
 func (*ListRoomsReply) ProtoMessage() {}
 
 func (x *ListRoomsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[57]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5235,7 +6416,7 @@ func (x *ListRoomsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRoomsReply.ProtoReflect.Descriptor instead.
 func (*ListRoomsReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{57}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *ListRoomsReply) GetRooms() []*AuctionRoom {
@@ -5262,7 +6443,7 @@ type ListPublicRoomsReply struct {
 
 func (x *ListPublicRoomsReply) Reset() {
 	*x = ListPublicRoomsReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[58]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5274,7 +6455,7 @@ func (x *ListPublicRoomsReply) String() string {
 func (*ListPublicRoomsReply) ProtoMessage() {}
 
 func (x *ListPublicRoomsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[58]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5287,7 +6468,7 @@ func (x *ListPublicRoomsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPublicRoomsReply.ProtoReflect.Descriptor instead.
 func (*ListPublicRoomsReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{58}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *ListPublicRoomsReply) GetRooms() []*AuctionRoom {
@@ -5315,7 +6496,7 @@ type ListBuyerSuggestionsReply struct {
 
 func (x *ListBuyerSuggestionsReply) Reset() {
 	*x = ListBuyerSuggestionsReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[59]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5327,7 +6508,7 @@ func (x *ListBuyerSuggestionsReply) String() string {
 func (*ListBuyerSuggestionsReply) ProtoMessage() {}
 
 func (x *ListBuyerSuggestionsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[59]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5340,7 +6521,7 @@ func (x *ListBuyerSuggestionsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBuyerSuggestionsReply.ProtoReflect.Descriptor instead.
 func (*ListBuyerSuggestionsReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{59}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *ListBuyerSuggestionsReply) GetSuggestions() []*BuyerSuggestion {
@@ -5358,6 +6539,142 @@ func (x *ListBuyerSuggestionsReply) GetFallbackUsed() bool {
 }
 
 func (x *ListBuyerSuggestionsReply) GetResult() *ReplyResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type GetAdminDashboardReply struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Currency         string                 `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency,omitempty"`
+	Range            *DashboardRange        `protobuf:"bytes,2,opt,name=range,proto3" json:"range,omitempty"`
+	SnapshotAtUnixMs int64                  `protobuf:"varint,3,opt,name=snapshot_at_unix_ms,json=snapshotAtUnixMs,proto3" json:"snapshot_at_unix_ms,omitempty"`
+	Summary          *DashboardSummary      `protobuf:"bytes,4,opt,name=summary,proto3" json:"summary,omitempty"`
+	Funnel           *DashboardFunnel       `protobuf:"bytes,5,opt,name=funnel,proto3" json:"funnel,omitempty"`
+	// Complete buckets: today 24, 7d 7, 30d 30; live at most 720 with adaptive width.
+	Trend []*DashboardTrendPoint `protobuf:"bytes,6,rep,name=trend,proto3" json:"trend,omitempty"`
+	// Top 10 by paid_amount DESC, lot_id ASC.
+	TopLots []*DashboardTopLot `protobuf:"bytes,7,rep,name=top_lots,json=topLots,proto3" json:"top_lots,omitempty"`
+	// All categories (at most 1000); overflow omits this panel with DATA_INCOMPLETE.
+	Categories []*DashboardCategoryPerformance `protobuf:"bytes,8,rep,name=categories,proto3" json:"categories,omitempty"`
+	OrderRisks *DashboardOrderRisks            `protobuf:"bytes,9,opt,name=order_risks,json=orderRisks,proto3" json:"order_risks,omitempty"`
+	// Top 100 detail rows by paid_amount DESC, lot_id ASC, not all matching lots.
+	LotPerformance []*DashboardLotPerformance `protobuf:"bytes,10,rep,name=lot_performance,json=lotPerformance,proto3" json:"lot_performance,omitempty"`
+	PartialErrors  []*DashboardPartialError   `protobuf:"bytes,11,rep,name=partial_errors,json=partialErrors,proto3" json:"partial_errors,omitempty"`
+	Result         *ReplyResult               `protobuf:"bytes,99,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetAdminDashboardReply) Reset() {
+	*x = GetAdminDashboardReply{}
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[75]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAdminDashboardReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAdminDashboardReply) ProtoMessage() {}
+
+func (x *GetAdminDashboardReply) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[75]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAdminDashboardReply.ProtoReflect.Descriptor instead.
+func (*GetAdminDashboardReply) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{75}
+}
+
+func (x *GetAdminDashboardReply) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *GetAdminDashboardReply) GetRange() *DashboardRange {
+	if x != nil {
+		return x.Range
+	}
+	return nil
+}
+
+func (x *GetAdminDashboardReply) GetSnapshotAtUnixMs() int64 {
+	if x != nil {
+		return x.SnapshotAtUnixMs
+	}
+	return 0
+}
+
+func (x *GetAdminDashboardReply) GetSummary() *DashboardSummary {
+	if x != nil {
+		return x.Summary
+	}
+	return nil
+}
+
+func (x *GetAdminDashboardReply) GetFunnel() *DashboardFunnel {
+	if x != nil {
+		return x.Funnel
+	}
+	return nil
+}
+
+func (x *GetAdminDashboardReply) GetTrend() []*DashboardTrendPoint {
+	if x != nil {
+		return x.Trend
+	}
+	return nil
+}
+
+func (x *GetAdminDashboardReply) GetTopLots() []*DashboardTopLot {
+	if x != nil {
+		return x.TopLots
+	}
+	return nil
+}
+
+func (x *GetAdminDashboardReply) GetCategories() []*DashboardCategoryPerformance {
+	if x != nil {
+		return x.Categories
+	}
+	return nil
+}
+
+func (x *GetAdminDashboardReply) GetOrderRisks() *DashboardOrderRisks {
+	if x != nil {
+		return x.OrderRisks
+	}
+	return nil
+}
+
+func (x *GetAdminDashboardReply) GetLotPerformance() []*DashboardLotPerformance {
+	if x != nil {
+		return x.LotPerformance
+	}
+	return nil
+}
+
+func (x *GetAdminDashboardReply) GetPartialErrors() []*DashboardPartialError {
+	if x != nil {
+		return x.PartialErrors
+	}
+	return nil
+}
+
+func (x *GetAdminDashboardReply) GetResult() *ReplyResult {
 	if x != nil {
 		return x.Result
 	}
@@ -5391,7 +6708,7 @@ type BuyerConsultResult struct {
 
 func (x *BuyerConsultResult) Reset() {
 	*x = BuyerConsultResult{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[60]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5403,7 +6720,7 @@ func (x *BuyerConsultResult) String() string {
 func (*BuyerConsultResult) ProtoMessage() {}
 
 func (x *BuyerConsultResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[60]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5416,7 +6733,7 @@ func (x *BuyerConsultResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuyerConsultResult.ProtoReflect.Descriptor instead.
 func (*BuyerConsultResult) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{60}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *BuyerConsultResult) GetType() string {
@@ -5499,7 +6816,7 @@ type BuyerConsultSource struct {
 
 func (x *BuyerConsultSource) Reset() {
 	*x = BuyerConsultSource{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[61]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5511,7 +6828,7 @@ func (x *BuyerConsultSource) String() string {
 func (*BuyerConsultSource) ProtoMessage() {}
 
 func (x *BuyerConsultSource) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[61]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5524,7 +6841,7 @@ func (x *BuyerConsultSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuyerConsultSource.ProtoReflect.Descriptor instead.
 func (*BuyerConsultSource) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{61}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *BuyerConsultSource) GetType() string {
@@ -5576,7 +6893,7 @@ type BuyerConsultReply struct {
 
 func (x *BuyerConsultReply) Reset() {
 	*x = BuyerConsultReply{}
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[62]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5588,7 +6905,7 @@ func (x *BuyerConsultReply) String() string {
 func (*BuyerConsultReply) ProtoMessage() {}
 
 func (x *BuyerConsultReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_auction_service_v1_auction_proto_msgTypes[62]
+	mi := &file_api_auction_service_v1_auction_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5601,7 +6918,7 @@ func (x *BuyerConsultReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuyerConsultReply.ProtoReflect.Descriptor instead.
 func (*BuyerConsultReply) Descriptor() ([]byte, []int) {
-	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{62}
+	return file_api_auction_service_v1_auction_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *BuyerConsultReply) GetAnswer() string {
@@ -5650,7 +6967,38 @@ var File_api_auction_service_v1_auction_proto protoreflect.FileDescriptor
 
 const file_api_auction_service_v1_auction_proto_rawDesc = "" +
 	"\n" +
-	"$api/auction/service/v1/auction.proto\x12\x12auction.service.v1\x1a\x1cgoogle/api/annotations.proto\"V\n" +
+	"$api/auction/service/v1/auction.proto\x12\x12auction.service.v1\x1a\x1cgoogle/api/annotations.proto\"\xbb\x02\n" +
+	"\x12BuyerSearchRequest\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12\x17\n" +
+	"\aroom_id\x18\x02 \x01(\tR\x06roomId\x12-\n" +
+	"\x10min_price_amount\x18\x03 \x01(\x03H\x00R\x0eminPriceAmount\x88\x01\x01\x12-\n" +
+	"\x10max_price_amount\x18\x04 \x01(\x03H\x01R\x0emaxPriceAmount\x88\x01\x01\x129\n" +
+	"\bstatuses\x18\x05 \x03(\x0e2\x1d.auction.service.v1.LotStatusR\bstatuses\x12\x1b\n" +
+	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\x12\x16\n" +
+	"\x06cursor\x18\a \x01(\tR\x06cursorB\x13\n" +
+	"\x11_min_price_amountB\x13\n" +
+	"\x11_max_price_amount\"\xf0\x01\n" +
+	"\x12BuyerSearchFilters\x12\x17\n" +
+	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12-\n" +
+	"\x10min_price_amount\x18\x02 \x01(\x03H\x00R\x0eminPriceAmount\x88\x01\x01\x12-\n" +
+	"\x10max_price_amount\x18\x03 \x01(\x03H\x01R\x0emaxPriceAmount\x88\x01\x01\x129\n" +
+	"\bstatuses\x18\x04 \x03(\x0e2\x1d.auction.service.v1.LotStatusR\bstatusesB\x13\n" +
+	"\x11_min_price_amountB\x13\n" +
+	"\x11_max_price_amount\"\xa4\x01\n" +
+	"\x0eBuyerSearchHit\x12)\n" +
+	"\x03lot\x18\x01 \x01(\v2\x17.auction.service.v1.LotR\x03lot\x12!\n" +
+	"\fmatch_reason\x18\x02 \x01(\tR\vmatchReason\x120\n" +
+	"\x15facts_read_at_unix_ms\x18\x03 \x01(\x03R\x11factsReadAtUnixMs\x12\x12\n" +
+	"\x04href\x18\x04 \x01(\tR\x04href\"\xce\x02\n" +
+	"\x10BuyerSearchReply\x127\n" +
+	"\x06result\x18\x01 \x01(\v2\x1f.auction.service.v1.ReplyResultR\x06result\x126\n" +
+	"\x04hits\x18\x02 \x03(\v2\".auction.service.v1.BuyerSearchHitR\x04hits\x12O\n" +
+	"\x0fapplied_filters\x18\x03 \x01(\v2&.auction.service.v1.BuyerSearchFiltersR\x0eappliedFilters\x12\x1a\n" +
+	"\bwarnings\x18\x04 \x03(\tR\bwarnings\x12\x12\n" +
+	"\x04mode\x18\x05 \x01(\tR\x04mode\x12'\n" +
+	"\x0fdegraded_reason\x18\x06 \x01(\tR\x0edegradedReason\x12\x1f\n" +
+	"\vnext_cursor\x18\a \x01(\tR\n" +
+	"nextCursor\"V\n" +
 	"\vReplyResult\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x19\n" +
@@ -5894,7 +7242,84 @@ const file_api_auction_service_v1_auction_proto_rawDesc = "" +
 	"\x15ListAdminRoomsRequest\"\x18\n" +
 	"\x16ListPublicRoomsRequest\"3\n" +
 	"\x1bListBuyerSuggestionsRequest\x12\x14\n" +
-	"\x05limit\x18\x01 \x01(\x05R\x05limit\"\xba\x02\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\"h\n" +
+	"\x18GetAdminDashboardRequest\x12\x14\n" +
+	"\x05range\x18\x01 \x01(\tR\x05range\x12\x1a\n" +
+	"\btimezone\x18\x02 \x01(\tR\btimezone\x12\x1a\n" +
+	"\bsections\x18\x03 \x03(\tR\bsections\"d\n" +
+	"\x0eDashboardRatio\x12\x1c\n" +
+	"\tnumerator\x18\x01 \x01(\x03R\tnumerator\x12 \n" +
+	"\vdenominator\x18\x02 \x01(\x03R\vdenominator\x12\x12\n" +
+	"\x04rate\x18\x03 \x01(\x01R\x04rate\"\x86\x01\n" +
+	"\x0eDashboardRange\x12\x14\n" +
+	"\x05range\x18\x01 \x01(\tR\x05range\x12\x1a\n" +
+	"\btimezone\x18\x02 \x01(\tR\btimezone\x12\"\n" +
+	"\rstart_unix_ms\x18\x03 \x01(\x03R\vstartUnixMs\x12\x1e\n" +
+	"\vend_unix_ms\x18\x04 \x01(\x03R\tendUnixMs\"\xb3\x03\n" +
+	"\x10DashboardSummary\x12\x1d\n" +
+	"\n" +
+	"gmv_amount\x18\x01 \x01(\x03R\tgmvAmount\x12\x1f\n" +
+	"\vpaid_amount\x18\x02 \x01(\x03R\n" +
+	"paidAmount\x12%\n" +
+	"\x0epending_amount\x18\x03 \x01(\x03R\rpendingAmount\x12\x1f\n" +
+	"\vorder_count\x18\x04 \x01(\x03R\n" +
+	"orderCount\x122\n" +
+	"\x15cancelled_order_count\x18\x05 \x01(\x03R\x13cancelledOrderCount\x12+\n" +
+	"\x11participant_count\x18\x06 \x01(\x03R\x10participantCount\x12.\n" +
+	"\x13average_deal_amount\x18\a \x01(\x03R\x11averageDealAmount\x12E\n" +
+	"\fpayment_rate\x18\b \x01(\v2\".auction.service.v1.DashboardRatioR\vpaymentRate\x12?\n" +
+	"\tdeal_rate\x18\t \x01(\v2\".auction.service.v1.DashboardRatioR\bdealRate\"\x89\x02\n" +
+	"\x0fDashboardFunnel\x12*\n" +
+	"\x11created_lot_count\x18\x01 \x01(\x03R\x0fcreatedLotCount\x12(\n" +
+	"\x10listed_lot_count\x18\x02 \x01(\x03R\x0elistedLotCount\x12*\n" +
+	"\x11started_lot_count\x18\x03 \x01(\x03R\x0fstartedLotCount\x12\"\n" +
+	"\rbid_lot_count\x18\x04 \x01(\x03R\vbidLotCount\x12*\n" +
+	"\x11settled_lot_count\x18\x05 \x01(\x03R\x0fsettledLotCount\x12$\n" +
+	"\x0epaid_lot_count\x18\x06 \x01(\x03R\fpaidLotCount\"\xb5\x01\n" +
+	"\x13DashboardTrendPoint\x12\"\n" +
+	"\rstart_unix_ms\x18\x01 \x01(\x03R\vstartUnixMs\x12\x1e\n" +
+	"\vend_unix_ms\x18\x02 \x01(\x03R\tendUnixMs\x12\x1f\n" +
+	"\vpaid_amount\x18\x03 \x01(\x03R\n" +
+	"paidAmount\x12\x1f\n" +
+	"\vpaid_orders\x18\x04 \x01(\x03R\n" +
+	"paidOrders\x12\x18\n" +
+	"\abidders\x18\x05 \x01(\x03R\abidders\"\xe8\x01\n" +
+	"\x0fDashboardTopLot\x12\x15\n" +
+	"\x06lot_id\x18\x01 \x01(\tR\x05lotId\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1a\n" +
+	"\bcategory\x18\x03 \x01(\tR\bcategory\x12\x1f\n" +
+	"\vpaid_amount\x18\x04 \x01(\x03R\n" +
+	"paidAmount\x12!\n" +
+	"\ffinal_amount\x18\x05 \x01(\x03R\vfinalAmount\x12\x1b\n" +
+	"\tbid_count\x18\x06 \x01(\x03R\bbidCount\x12+\n" +
+	"\x11participant_count\x18\a \x01(\x03R\x10participantCount\"\xf4\x01\n" +
+	"\x1cDashboardCategoryPerformance\x12\x1a\n" +
+	"\bcategory\x18\x01 \x01(\tR\bcategory\x12\x1f\n" +
+	"\vpaid_amount\x18\x02 \x01(\x03R\n" +
+	"paidAmount\x12*\n" +
+	"\x11started_lot_count\x18\x03 \x01(\x03R\x0fstartedLotCount\x12*\n" +
+	"\x11settled_lot_count\x18\x04 \x01(\x03R\x0fsettledLotCount\x12?\n" +
+	"\tdeal_rate\x18\x05 \x01(\v2\".auction.service.v1.DashboardRatioR\bdealRate\"\xd0\x01\n" +
+	"\x13DashboardOrderRisks\x122\n" +
+	"\x15pending_payment_count\x18\x01 \x01(\x03R\x13pendingPaymentCount\x12.\n" +
+	"\x13expiring_soon_count\x18\x02 \x01(\x03R\x11expiringSoonCount\x12#\n" +
+	"\rexpired_count\x18\x03 \x01(\x03R\fexpiredCount\x120\n" +
+	"\x14payment_failed_count\x18\x04 \x01(\x03R\x12paymentFailedCount\"\xd5\x02\n" +
+	"\x17DashboardLotPerformance\x12\x15\n" +
+	"\x06lot_id\x18\x01 \x01(\tR\x05lotId\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1a\n" +
+	"\bcategory\x18\x03 \x01(\tR\bcategory\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12\x1b\n" +
+	"\tbid_count\x18\x05 \x01(\x03R\bbidCount\x12+\n" +
+	"\x11participant_count\x18\x06 \x01(\x03R\x10participantCount\x12!\n" +
+	"\ffinal_amount\x18\a \x01(\x03R\vfinalAmount\x12\x1f\n" +
+	"\vpaid_amount\x18\b \x01(\x03R\n" +
+	"paidAmount\x12K\n" +
+	"\x0fconversion_rate\x18\t \x01(\v2\".auction.service.v1.DashboardRatioR\x0econversionRate\"_\n" +
+	"\x15DashboardPartialError\x12\x18\n" +
+	"\asection\x18\x01 \x01(\tR\asection\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\"\xba\x02\n" +
 	"\x1eAuctionDeliveryAddressSnapshot\x12\x1d\n" +
 	"\n" +
 	"address_id\x18\x01 \x01(\tR\taddressId\x12#\n" +
@@ -6059,6 +7484,23 @@ const file_api_auction_service_v1_auction_proto_rawDesc = "" +
 	"\x19ListBuyerSuggestionsReply\x12E\n" +
 	"\vsuggestions\x18\x01 \x03(\v2#.auction.service.v1.BuyerSuggestionR\vsuggestions\x12#\n" +
 	"\rfallback_used\x18\x02 \x01(\bR\ffallbackUsed\x127\n" +
+	"\x06result\x18c \x01(\v2\x1f.auction.service.v1.ReplyResultR\x06result\"\x96\x06\n" +
+	"\x16GetAdminDashboardReply\x12\x1a\n" +
+	"\bcurrency\x18\x01 \x01(\tR\bcurrency\x128\n" +
+	"\x05range\x18\x02 \x01(\v2\".auction.service.v1.DashboardRangeR\x05range\x12-\n" +
+	"\x13snapshot_at_unix_ms\x18\x03 \x01(\x03R\x10snapshotAtUnixMs\x12>\n" +
+	"\asummary\x18\x04 \x01(\v2$.auction.service.v1.DashboardSummaryR\asummary\x12;\n" +
+	"\x06funnel\x18\x05 \x01(\v2#.auction.service.v1.DashboardFunnelR\x06funnel\x12=\n" +
+	"\x05trend\x18\x06 \x03(\v2'.auction.service.v1.DashboardTrendPointR\x05trend\x12>\n" +
+	"\btop_lots\x18\a \x03(\v2#.auction.service.v1.DashboardTopLotR\atopLots\x12P\n" +
+	"\n" +
+	"categories\x18\b \x03(\v20.auction.service.v1.DashboardCategoryPerformanceR\n" +
+	"categories\x12H\n" +
+	"\vorder_risks\x18\t \x01(\v2'.auction.service.v1.DashboardOrderRisksR\n" +
+	"orderRisks\x12T\n" +
+	"\x0flot_performance\x18\n" +
+	" \x03(\v2+.auction.service.v1.DashboardLotPerformanceR\x0elotPerformance\x12P\n" +
+	"\x0epartial_errors\x18\v \x03(\v2).auction.service.v1.DashboardPartialErrorR\rpartialErrors\x127\n" +
 	"\x06result\x18c \x01(\v2\x1f.auction.service.v1.ReplyResultR\x06result\"\x8f\x02\n" +
 	"\x12BuyerConsultResult\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x14\n" +
@@ -6132,7 +7574,7 @@ const file_api_auction_service_v1_auction_proto_rawDesc = "" +
 	"#AUCTION_EVENT_TYPE_AUCTION_EXTENDED\x10\x0f\x12%\n" +
 	"!AUCTION_EVENT_TYPE_AUCTION_CLOSED\x10\x10\x12$\n" +
 	" AUCTION_EVENT_TYPE_ORDER_CREATED\x10\x11\x12&\n" +
-	"\"AUCTION_EVENT_TYPE_PAYMENT_SUCCESS\x10\x122\xc5\x18\n" +
+	"\"AUCTION_EVENT_TYPE_PAYMENT_SUCCESS\x10\x122\xcd\x1b\n" +
 	"\x0eAuctionService\x12k\n" +
 	"\tCreateLot\x12$.auction.service.v1.CreateLotRequest\x1a\".auction.service.v1.CreateLotReply\"\x14\x82\xd3\xe4\x93\x02\x0e:\x01*\"\t/api/lots\x12w\n" +
 	"\x0eCreateLotDraft\x12$.auction.service.v1.CreateLotRequest\x1a\".auction.service.v1.CreateLotReply\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/api/lots/drafts\x12\x86\x01\n" +
@@ -6153,11 +7595,14 @@ const file_api_auction_service_v1_auction_proto_rawDesc = "" +
 	"\x13ListMyAuctionOrders\x12,.auction.service.v1.ListAuctionOrdersRequest\x1a*.auction.service.v1.ListAuctionOrdersReply\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/api/me/orders\x12|\n" +
 	"\x10ListMyBidRecords\x12).auction.service.v1.ListBidRecordsRequest\x1a'.auction.service.v1.ListBidRecordsReply\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/api/me/bids\x12\x8d\x01\n" +
 	"\x16ListAdminAuctionOrders\x12,.auction.service.v1.ListAuctionOrdersRequest\x1a*.auction.service.v1.ListAuctionOrdersReply\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/api/admin/orders\x12\x83\x01\n" +
-	"\x10ListAdminLotPage\x12+.auction.service.v1.ListAdminLotPageRequest\x1a).auction.service.v1.ListAdminLotPageReply\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/api/admin/lots\x12|\n" +
-	"\x11ListAdminRoomList\x12).auction.service.v1.ListAdminRoomsRequest\x1a\".auction.service.v1.ListRoomsReply\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/api/admin/rooms\x12~\n" +
+	"\x10ListAdminLotPage\x12+.auction.service.v1.ListAdminLotPageRequest\x1a).auction.service.v1.ListAdminLotPageReply\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/api/admin/lots\x12s\n" +
+	"\vGetAdminLot\x12!.auction.service.v1.GetLotRequest\x1a\x1f.auction.service.v1.GetLotReply\" \x82\xd3\xe4\x93\x02\x1a\x12\x18/api/admin/lots/{lot_id}\x12|\n" +
+	"\x11ListAdminRoomList\x12).auction.service.v1.ListAdminRoomsRequest\x1a\".auction.service.v1.ListRoomsReply\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/api/admin/rooms\x12\x8b\x01\n" +
+	"\x11GetAdminDashboard\x12,.auction.service.v1.GetAdminDashboardRequest\x1a*.auction.service.v1.GetAdminDashboardReply\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/api/admin/dashboard\x12~\n" +
 	"\x12ListPublicRoomList\x12*.auction.service.v1.ListPublicRoomsRequest\x1a(.auction.service.v1.ListPublicRoomsReply\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
 	"/api/rooms\x12\x99\x01\n" +
-	"\x14ListBuyerSuggestions\x12/.auction.service.v1.ListBuyerSuggestionsRequest\x1a-.auction.service.v1.ListBuyerSuggestionsReply\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/api/ai/buyer/suggestions\x12\x80\x01\n" +
+	"\x14ListBuyerSuggestions\x12/.auction.service.v1.ListBuyerSuggestionsRequest\x1a-.auction.service.v1.ListBuyerSuggestionsReply\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/api/ai/buyer/suggestions\x12\x82\x01\n" +
+	"\x0fSearchBuyerLots\x12&.auction.service.v1.BuyerSearchRequest\x1a$.auction.service.v1.BuyerSearchReply\"!\x82\xd3\xe4\x93\x02\x1b:\x01*\"\x16/api/buyer/lots/search\x12\x80\x01\n" +
 	"\fConsultBuyer\x12'.auction.service.v1.BuyerConsultRequest\x1a%.auction.service.v1.BuyerConsultReply\" \x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/api/ai/buyer/consultB4Z2live-auction-bid/backend/api/auction/service/v1;v1b\x06proto3"
 
 var (
@@ -6173,229 +7618,271 @@ func file_api_auction_service_v1_auction_proto_rawDescGZIP() []byte {
 }
 
 var file_api_auction_service_v1_auction_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_api_auction_service_v1_auction_proto_msgTypes = make([]protoimpl.MessageInfo, 63)
+var file_api_auction_service_v1_auction_proto_msgTypes = make([]protoimpl.MessageInfo, 79)
 var file_api_auction_service_v1_auction_proto_goTypes = []any{
 	(LotStatus)(0),                         // 0: auction.service.v1.LotStatus
 	(LotQueueStatus)(0),                    // 1: auction.service.v1.LotQueueStatus
 	(TrustCardType)(0),                     // 2: auction.service.v1.TrustCardType
 	(PlaybookStage)(0),                     // 3: auction.service.v1.PlaybookStage
 	(AuctionEventType)(0),                  // 4: auction.service.v1.AuctionEventType
-	(*ReplyResult)(nil),                    // 5: auction.service.v1.ReplyResult
-	(*Money)(nil),                          // 6: auction.service.v1.Money
-	(*LotStats)(nil),                       // 7: auction.service.v1.LotStats
-	(*BidRule)(nil),                        // 8: auction.service.v1.BidRule
-	(*TrustRevealCard)(nil),                // 9: auction.service.v1.TrustRevealCard
-	(*Bid)(nil),                            // 10: auction.service.v1.Bid
-	(*RankingItem)(nil),                    // 11: auction.service.v1.RankingItem
-	(*DuelState)(nil),                      // 12: auction.service.v1.DuelState
-	(*Lot)(nil),                            // 13: auction.service.v1.Lot
-	(*RoomSnapshot)(nil),                   // 14: auction.service.v1.RoomSnapshot
-	(*RoomPresence)(nil),                   // 15: auction.service.v1.RoomPresence
-	(*AuctionEvent)(nil),                   // 16: auction.service.v1.AuctionEvent
-	(*CreateLotRequest)(nil),               // 17: auction.service.v1.CreateLotRequest
-	(*PatchLotDraftRequest)(nil),           // 18: auction.service.v1.PatchLotDraftRequest
-	(*QueueLotRequest)(nil),                // 19: auction.service.v1.QueueLotRequest
-	(*GetLotRequest)(nil),                  // 20: auction.service.v1.GetLotRequest
-	(*ListLotsRequest)(nil),                // 21: auction.service.v1.ListLotsRequest
-	(*StartLotRequest)(nil),                // 22: auction.service.v1.StartLotRequest
-	(*PlaceBidRequest)(nil),                // 23: auction.service.v1.PlaceBidRequest
-	(*RevealTrustCardRequest)(nil),         // 24: auction.service.v1.RevealTrustCardRequest
-	(*StartDuelRequest)(nil),               // 25: auction.service.v1.StartDuelRequest
-	(*SettleLotRequest)(nil),               // 26: auction.service.v1.SettleLotRequest
-	(*CancelLotRequest)(nil),               // 27: auction.service.v1.CancelLotRequest
-	(*GetRoomSnapshotRequest)(nil),         // 28: auction.service.v1.GetRoomSnapshotRequest
-	(*GetRoomPresenceRequest)(nil),         // 29: auction.service.v1.GetRoomPresenceRequest
-	(*ListRoomEventsRequest)(nil),          // 30: auction.service.v1.ListRoomEventsRequest
-	(*BuyerConsultRequest)(nil),            // 31: auction.service.v1.BuyerConsultRequest
-	(*GetLotResultRequest)(nil),            // 32: auction.service.v1.GetLotResultRequest
-	(*ListAuctionOrdersRequest)(nil),       // 33: auction.service.v1.ListAuctionOrdersRequest
-	(*ListBidRecordsRequest)(nil),          // 34: auction.service.v1.ListBidRecordsRequest
-	(*ListAdminLotPageRequest)(nil),        // 35: auction.service.v1.ListAdminLotPageRequest
-	(*ListAdminRoomsRequest)(nil),          // 36: auction.service.v1.ListAdminRoomsRequest
-	(*ListPublicRoomsRequest)(nil),         // 37: auction.service.v1.ListPublicRoomsRequest
-	(*ListBuyerSuggestionsRequest)(nil),    // 38: auction.service.v1.ListBuyerSuggestionsRequest
-	(*AuctionDeliveryAddressSnapshot)(nil), // 39: auction.service.v1.AuctionDeliveryAddressSnapshot
-	(*AuctionOrderSummary)(nil),            // 40: auction.service.v1.AuctionOrderSummary
-	(*AuctionBidRecord)(nil),               // 41: auction.service.v1.AuctionBidRecord
-	(*AuctionRoom)(nil),                    // 42: auction.service.v1.AuctionRoom
-	(*BuyerSuggestion)(nil),                // 43: auction.service.v1.BuyerSuggestion
-	(*CreateLotReply)(nil),                 // 44: auction.service.v1.CreateLotReply
-	(*PatchLotDraftReply)(nil),             // 45: auction.service.v1.PatchLotDraftReply
-	(*QueueLotReply)(nil),                  // 46: auction.service.v1.QueueLotReply
-	(*GetLotReply)(nil),                    // 47: auction.service.v1.GetLotReply
-	(*ListLotsReply)(nil),                  // 48: auction.service.v1.ListLotsReply
-	(*StartLotReply)(nil),                  // 49: auction.service.v1.StartLotReply
-	(*PlaceBidReply)(nil),                  // 50: auction.service.v1.PlaceBidReply
-	(*RevealTrustCardReply)(nil),           // 51: auction.service.v1.RevealTrustCardReply
-	(*StartDuelReply)(nil),                 // 52: auction.service.v1.StartDuelReply
-	(*SettleLotReply)(nil),                 // 53: auction.service.v1.SettleLotReply
-	(*CancelLotReply)(nil),                 // 54: auction.service.v1.CancelLotReply
-	(*GetRoomSnapshotReply)(nil),           // 55: auction.service.v1.GetRoomSnapshotReply
-	(*GetRoomPresenceReply)(nil),           // 56: auction.service.v1.GetRoomPresenceReply
-	(*ListRoomEventsReply)(nil),            // 57: auction.service.v1.ListRoomEventsReply
-	(*GetLotResultReply)(nil),              // 58: auction.service.v1.GetLotResultReply
-	(*ListAuctionOrdersReply)(nil),         // 59: auction.service.v1.ListAuctionOrdersReply
-	(*ListBidRecordsReply)(nil),            // 60: auction.service.v1.ListBidRecordsReply
-	(*ListAdminLotPageReply)(nil),          // 61: auction.service.v1.ListAdminLotPageReply
-	(*ListRoomsReply)(nil),                 // 62: auction.service.v1.ListRoomsReply
-	(*ListPublicRoomsReply)(nil),           // 63: auction.service.v1.ListPublicRoomsReply
-	(*ListBuyerSuggestionsReply)(nil),      // 64: auction.service.v1.ListBuyerSuggestionsReply
-	(*BuyerConsultResult)(nil),             // 65: auction.service.v1.BuyerConsultResult
-	(*BuyerConsultSource)(nil),             // 66: auction.service.v1.BuyerConsultSource
-	(*BuyerConsultReply)(nil),              // 67: auction.service.v1.BuyerConsultReply
+	(*BuyerSearchRequest)(nil),             // 5: auction.service.v1.BuyerSearchRequest
+	(*BuyerSearchFilters)(nil),             // 6: auction.service.v1.BuyerSearchFilters
+	(*BuyerSearchHit)(nil),                 // 7: auction.service.v1.BuyerSearchHit
+	(*BuyerSearchReply)(nil),               // 8: auction.service.v1.BuyerSearchReply
+	(*ReplyResult)(nil),                    // 9: auction.service.v1.ReplyResult
+	(*Money)(nil),                          // 10: auction.service.v1.Money
+	(*LotStats)(nil),                       // 11: auction.service.v1.LotStats
+	(*BidRule)(nil),                        // 12: auction.service.v1.BidRule
+	(*TrustRevealCard)(nil),                // 13: auction.service.v1.TrustRevealCard
+	(*Bid)(nil),                            // 14: auction.service.v1.Bid
+	(*RankingItem)(nil),                    // 15: auction.service.v1.RankingItem
+	(*DuelState)(nil),                      // 16: auction.service.v1.DuelState
+	(*Lot)(nil),                            // 17: auction.service.v1.Lot
+	(*RoomSnapshot)(nil),                   // 18: auction.service.v1.RoomSnapshot
+	(*RoomPresence)(nil),                   // 19: auction.service.v1.RoomPresence
+	(*AuctionEvent)(nil),                   // 20: auction.service.v1.AuctionEvent
+	(*CreateLotRequest)(nil),               // 21: auction.service.v1.CreateLotRequest
+	(*PatchLotDraftRequest)(nil),           // 22: auction.service.v1.PatchLotDraftRequest
+	(*QueueLotRequest)(nil),                // 23: auction.service.v1.QueueLotRequest
+	(*GetLotRequest)(nil),                  // 24: auction.service.v1.GetLotRequest
+	(*ListLotsRequest)(nil),                // 25: auction.service.v1.ListLotsRequest
+	(*StartLotRequest)(nil),                // 26: auction.service.v1.StartLotRequest
+	(*PlaceBidRequest)(nil),                // 27: auction.service.v1.PlaceBidRequest
+	(*RevealTrustCardRequest)(nil),         // 28: auction.service.v1.RevealTrustCardRequest
+	(*StartDuelRequest)(nil),               // 29: auction.service.v1.StartDuelRequest
+	(*SettleLotRequest)(nil),               // 30: auction.service.v1.SettleLotRequest
+	(*CancelLotRequest)(nil),               // 31: auction.service.v1.CancelLotRequest
+	(*GetRoomSnapshotRequest)(nil),         // 32: auction.service.v1.GetRoomSnapshotRequest
+	(*GetRoomPresenceRequest)(nil),         // 33: auction.service.v1.GetRoomPresenceRequest
+	(*ListRoomEventsRequest)(nil),          // 34: auction.service.v1.ListRoomEventsRequest
+	(*BuyerConsultRequest)(nil),            // 35: auction.service.v1.BuyerConsultRequest
+	(*GetLotResultRequest)(nil),            // 36: auction.service.v1.GetLotResultRequest
+	(*ListAuctionOrdersRequest)(nil),       // 37: auction.service.v1.ListAuctionOrdersRequest
+	(*ListBidRecordsRequest)(nil),          // 38: auction.service.v1.ListBidRecordsRequest
+	(*ListAdminLotPageRequest)(nil),        // 39: auction.service.v1.ListAdminLotPageRequest
+	(*ListAdminRoomsRequest)(nil),          // 40: auction.service.v1.ListAdminRoomsRequest
+	(*ListPublicRoomsRequest)(nil),         // 41: auction.service.v1.ListPublicRoomsRequest
+	(*ListBuyerSuggestionsRequest)(nil),    // 42: auction.service.v1.ListBuyerSuggestionsRequest
+	(*GetAdminDashboardRequest)(nil),       // 43: auction.service.v1.GetAdminDashboardRequest
+	(*DashboardRatio)(nil),                 // 44: auction.service.v1.DashboardRatio
+	(*DashboardRange)(nil),                 // 45: auction.service.v1.DashboardRange
+	(*DashboardSummary)(nil),               // 46: auction.service.v1.DashboardSummary
+	(*DashboardFunnel)(nil),                // 47: auction.service.v1.DashboardFunnel
+	(*DashboardTrendPoint)(nil),            // 48: auction.service.v1.DashboardTrendPoint
+	(*DashboardTopLot)(nil),                // 49: auction.service.v1.DashboardTopLot
+	(*DashboardCategoryPerformance)(nil),   // 50: auction.service.v1.DashboardCategoryPerformance
+	(*DashboardOrderRisks)(nil),            // 51: auction.service.v1.DashboardOrderRisks
+	(*DashboardLotPerformance)(nil),        // 52: auction.service.v1.DashboardLotPerformance
+	(*DashboardPartialError)(nil),          // 53: auction.service.v1.DashboardPartialError
+	(*AuctionDeliveryAddressSnapshot)(nil), // 54: auction.service.v1.AuctionDeliveryAddressSnapshot
+	(*AuctionOrderSummary)(nil),            // 55: auction.service.v1.AuctionOrderSummary
+	(*AuctionBidRecord)(nil),               // 56: auction.service.v1.AuctionBidRecord
+	(*AuctionRoom)(nil),                    // 57: auction.service.v1.AuctionRoom
+	(*BuyerSuggestion)(nil),                // 58: auction.service.v1.BuyerSuggestion
+	(*CreateLotReply)(nil),                 // 59: auction.service.v1.CreateLotReply
+	(*PatchLotDraftReply)(nil),             // 60: auction.service.v1.PatchLotDraftReply
+	(*QueueLotReply)(nil),                  // 61: auction.service.v1.QueueLotReply
+	(*GetLotReply)(nil),                    // 62: auction.service.v1.GetLotReply
+	(*ListLotsReply)(nil),                  // 63: auction.service.v1.ListLotsReply
+	(*StartLotReply)(nil),                  // 64: auction.service.v1.StartLotReply
+	(*PlaceBidReply)(nil),                  // 65: auction.service.v1.PlaceBidReply
+	(*RevealTrustCardReply)(nil),           // 66: auction.service.v1.RevealTrustCardReply
+	(*StartDuelReply)(nil),                 // 67: auction.service.v1.StartDuelReply
+	(*SettleLotReply)(nil),                 // 68: auction.service.v1.SettleLotReply
+	(*CancelLotReply)(nil),                 // 69: auction.service.v1.CancelLotReply
+	(*GetRoomSnapshotReply)(nil),           // 70: auction.service.v1.GetRoomSnapshotReply
+	(*GetRoomPresenceReply)(nil),           // 71: auction.service.v1.GetRoomPresenceReply
+	(*ListRoomEventsReply)(nil),            // 72: auction.service.v1.ListRoomEventsReply
+	(*GetLotResultReply)(nil),              // 73: auction.service.v1.GetLotResultReply
+	(*ListAuctionOrdersReply)(nil),         // 74: auction.service.v1.ListAuctionOrdersReply
+	(*ListBidRecordsReply)(nil),            // 75: auction.service.v1.ListBidRecordsReply
+	(*ListAdminLotPageReply)(nil),          // 76: auction.service.v1.ListAdminLotPageReply
+	(*ListRoomsReply)(nil),                 // 77: auction.service.v1.ListRoomsReply
+	(*ListPublicRoomsReply)(nil),           // 78: auction.service.v1.ListPublicRoomsReply
+	(*ListBuyerSuggestionsReply)(nil),      // 79: auction.service.v1.ListBuyerSuggestionsReply
+	(*GetAdminDashboardReply)(nil),         // 80: auction.service.v1.GetAdminDashboardReply
+	(*BuyerConsultResult)(nil),             // 81: auction.service.v1.BuyerConsultResult
+	(*BuyerConsultSource)(nil),             // 82: auction.service.v1.BuyerConsultSource
+	(*BuyerConsultReply)(nil),              // 83: auction.service.v1.BuyerConsultReply
 }
 var file_api_auction_service_v1_auction_proto_depIdxs = []int32{
-	6,   // 0: auction.service.v1.BidRule.start_price:type_name -> auction.service.v1.Money
-	6,   // 1: auction.service.v1.BidRule.min_increment:type_name -> auction.service.v1.Money
-	6,   // 2: auction.service.v1.BidRule.cap_price:type_name -> auction.service.v1.Money
-	2,   // 3: auction.service.v1.TrustRevealCard.type:type_name -> auction.service.v1.TrustCardType
-	6,   // 4: auction.service.v1.Bid.amount:type_name -> auction.service.v1.Money
-	6,   // 5: auction.service.v1.RankingItem.amount:type_name -> auction.service.v1.Money
-	0,   // 6: auction.service.v1.Lot.status:type_name -> auction.service.v1.LotStatus
-	8,   // 7: auction.service.v1.Lot.rule:type_name -> auction.service.v1.BidRule
-	6,   // 8: auction.service.v1.Lot.current_price:type_name -> auction.service.v1.Money
-	6,   // 9: auction.service.v1.Lot.final_price:type_name -> auction.service.v1.Money
-	9,   // 10: auction.service.v1.Lot.trust_cards:type_name -> auction.service.v1.TrustRevealCard
-	12,  // 11: auction.service.v1.Lot.duel_state:type_name -> auction.service.v1.DuelState
-	3,   // 12: auction.service.v1.Lot.playbook_stage:type_name -> auction.service.v1.PlaybookStage
-	1,   // 13: auction.service.v1.Lot.queue_status:type_name -> auction.service.v1.LotQueueStatus
-	6,   // 14: auction.service.v1.Lot.estimate_price:type_name -> auction.service.v1.Money
-	6,   // 15: auction.service.v1.Lot.deposit_amount:type_name -> auction.service.v1.Money
-	7,   // 16: auction.service.v1.Lot.stats:type_name -> auction.service.v1.LotStats
-	13,  // 17: auction.service.v1.RoomSnapshot.current_lot:type_name -> auction.service.v1.Lot
-	11,  // 18: auction.service.v1.RoomSnapshot.ranking:type_name -> auction.service.v1.RankingItem
-	10,  // 19: auction.service.v1.RoomSnapshot.recent_bids:type_name -> auction.service.v1.Bid
-	3,   // 20: auction.service.v1.RoomSnapshot.playbook_stage:type_name -> auction.service.v1.PlaybookStage
-	4,   // 21: auction.service.v1.AuctionEvent.type:type_name -> auction.service.v1.AuctionEventType
-	13,  // 22: auction.service.v1.AuctionEvent.lot:type_name -> auction.service.v1.Lot
-	10,  // 23: auction.service.v1.AuctionEvent.bid:type_name -> auction.service.v1.Bid
-	11,  // 24: auction.service.v1.AuctionEvent.ranking:type_name -> auction.service.v1.RankingItem
-	9,   // 25: auction.service.v1.AuctionEvent.trust_card:type_name -> auction.service.v1.TrustRevealCard
-	12,  // 26: auction.service.v1.AuctionEvent.duel_state:type_name -> auction.service.v1.DuelState
-	14,  // 27: auction.service.v1.AuctionEvent.snapshot:type_name -> auction.service.v1.RoomSnapshot
-	8,   // 28: auction.service.v1.CreateLotRequest.rule:type_name -> auction.service.v1.BidRule
-	9,   // 29: auction.service.v1.CreateLotRequest.trust_cards:type_name -> auction.service.v1.TrustRevealCard
-	6,   // 30: auction.service.v1.CreateLotRequest.estimate_price:type_name -> auction.service.v1.Money
-	6,   // 31: auction.service.v1.CreateLotRequest.deposit_amount:type_name -> auction.service.v1.Money
-	8,   // 32: auction.service.v1.PatchLotDraftRequest.rule:type_name -> auction.service.v1.BidRule
-	9,   // 33: auction.service.v1.PatchLotDraftRequest.trust_cards:type_name -> auction.service.v1.TrustRevealCard
-	6,   // 34: auction.service.v1.PatchLotDraftRequest.estimate_price:type_name -> auction.service.v1.Money
-	6,   // 35: auction.service.v1.PatchLotDraftRequest.deposit_amount:type_name -> auction.service.v1.Money
-	0,   // 36: auction.service.v1.ListLotsRequest.status:type_name -> auction.service.v1.LotStatus
-	6,   // 37: auction.service.v1.PlaceBidRequest.amount:type_name -> auction.service.v1.Money
-	0,   // 38: auction.service.v1.ListAdminLotPageRequest.status:type_name -> auction.service.v1.LotStatus
-	39,  // 39: auction.service.v1.AuctionOrderSummary.shipping_address_snapshot:type_name -> auction.service.v1.AuctionDeliveryAddressSnapshot
-	13,  // 40: auction.service.v1.CreateLotReply.lot:type_name -> auction.service.v1.Lot
-	5,   // 41: auction.service.v1.CreateLotReply.result:type_name -> auction.service.v1.ReplyResult
-	13,  // 42: auction.service.v1.PatchLotDraftReply.lot:type_name -> auction.service.v1.Lot
-	5,   // 43: auction.service.v1.PatchLotDraftReply.result:type_name -> auction.service.v1.ReplyResult
-	13,  // 44: auction.service.v1.QueueLotReply.lot:type_name -> auction.service.v1.Lot
-	16,  // 45: auction.service.v1.QueueLotReply.event:type_name -> auction.service.v1.AuctionEvent
-	5,   // 46: auction.service.v1.QueueLotReply.result:type_name -> auction.service.v1.ReplyResult
-	13,  // 47: auction.service.v1.GetLotReply.lot:type_name -> auction.service.v1.Lot
-	5,   // 48: auction.service.v1.GetLotReply.result:type_name -> auction.service.v1.ReplyResult
-	13,  // 49: auction.service.v1.ListLotsReply.lots:type_name -> auction.service.v1.Lot
-	5,   // 50: auction.service.v1.ListLotsReply.result:type_name -> auction.service.v1.ReplyResult
-	13,  // 51: auction.service.v1.StartLotReply.lot:type_name -> auction.service.v1.Lot
-	16,  // 52: auction.service.v1.StartLotReply.event:type_name -> auction.service.v1.AuctionEvent
-	5,   // 53: auction.service.v1.StartLotReply.result:type_name -> auction.service.v1.ReplyResult
-	13,  // 54: auction.service.v1.PlaceBidReply.lot:type_name -> auction.service.v1.Lot
-	10,  // 55: auction.service.v1.PlaceBidReply.bid:type_name -> auction.service.v1.Bid
-	11,  // 56: auction.service.v1.PlaceBidReply.ranking:type_name -> auction.service.v1.RankingItem
-	16,  // 57: auction.service.v1.PlaceBidReply.event:type_name -> auction.service.v1.AuctionEvent
-	5,   // 58: auction.service.v1.PlaceBidReply.result:type_name -> auction.service.v1.ReplyResult
-	13,  // 59: auction.service.v1.RevealTrustCardReply.lot:type_name -> auction.service.v1.Lot
-	9,   // 60: auction.service.v1.RevealTrustCardReply.trust_card:type_name -> auction.service.v1.TrustRevealCard
-	16,  // 61: auction.service.v1.RevealTrustCardReply.event:type_name -> auction.service.v1.AuctionEvent
-	5,   // 62: auction.service.v1.RevealTrustCardReply.result:type_name -> auction.service.v1.ReplyResult
-	13,  // 63: auction.service.v1.StartDuelReply.lot:type_name -> auction.service.v1.Lot
-	12,  // 64: auction.service.v1.StartDuelReply.duel_state:type_name -> auction.service.v1.DuelState
-	16,  // 65: auction.service.v1.StartDuelReply.event:type_name -> auction.service.v1.AuctionEvent
-	5,   // 66: auction.service.v1.StartDuelReply.result:type_name -> auction.service.v1.ReplyResult
-	13,  // 67: auction.service.v1.SettleLotReply.lot:type_name -> auction.service.v1.Lot
-	16,  // 68: auction.service.v1.SettleLotReply.event:type_name -> auction.service.v1.AuctionEvent
-	5,   // 69: auction.service.v1.SettleLotReply.result:type_name -> auction.service.v1.ReplyResult
-	13,  // 70: auction.service.v1.CancelLotReply.lot:type_name -> auction.service.v1.Lot
-	16,  // 71: auction.service.v1.CancelLotReply.event:type_name -> auction.service.v1.AuctionEvent
-	5,   // 72: auction.service.v1.CancelLotReply.result:type_name -> auction.service.v1.ReplyResult
-	14,  // 73: auction.service.v1.GetRoomSnapshotReply.snapshot:type_name -> auction.service.v1.RoomSnapshot
-	5,   // 74: auction.service.v1.GetRoomSnapshotReply.result:type_name -> auction.service.v1.ReplyResult
-	15,  // 75: auction.service.v1.GetRoomPresenceReply.presence:type_name -> auction.service.v1.RoomPresence
-	5,   // 76: auction.service.v1.GetRoomPresenceReply.result:type_name -> auction.service.v1.ReplyResult
-	16,  // 77: auction.service.v1.ListRoomEventsReply.events:type_name -> auction.service.v1.AuctionEvent
-	5,   // 78: auction.service.v1.ListRoomEventsReply.result:type_name -> auction.service.v1.ReplyResult
-	13,  // 79: auction.service.v1.GetLotResultReply.lot:type_name -> auction.service.v1.Lot
-	40,  // 80: auction.service.v1.GetLotResultReply.order:type_name -> auction.service.v1.AuctionOrderSummary
-	5,   // 81: auction.service.v1.GetLotResultReply.result:type_name -> auction.service.v1.ReplyResult
-	40,  // 82: auction.service.v1.ListAuctionOrdersReply.orders:type_name -> auction.service.v1.AuctionOrderSummary
-	5,   // 83: auction.service.v1.ListAuctionOrdersReply.result:type_name -> auction.service.v1.ReplyResult
-	41,  // 84: auction.service.v1.ListBidRecordsReply.bids:type_name -> auction.service.v1.AuctionBidRecord
-	5,   // 85: auction.service.v1.ListBidRecordsReply.result:type_name -> auction.service.v1.ReplyResult
-	13,  // 86: auction.service.v1.ListAdminLotPageReply.lots:type_name -> auction.service.v1.Lot
-	5,   // 87: auction.service.v1.ListAdminLotPageReply.result:type_name -> auction.service.v1.ReplyResult
-	42,  // 88: auction.service.v1.ListRoomsReply.rooms:type_name -> auction.service.v1.AuctionRoom
-	5,   // 89: auction.service.v1.ListRoomsReply.result:type_name -> auction.service.v1.ReplyResult
-	42,  // 90: auction.service.v1.ListPublicRoomsReply.rooms:type_name -> auction.service.v1.AuctionRoom
-	5,   // 91: auction.service.v1.ListPublicRoomsReply.result:type_name -> auction.service.v1.ReplyResult
-	43,  // 92: auction.service.v1.ListBuyerSuggestionsReply.suggestions:type_name -> auction.service.v1.BuyerSuggestion
-	5,   // 93: auction.service.v1.ListBuyerSuggestionsReply.result:type_name -> auction.service.v1.ReplyResult
-	6,   // 94: auction.service.v1.BuyerConsultResult.current_price:type_name -> auction.service.v1.Money
-	65,  // 95: auction.service.v1.BuyerConsultReply.results:type_name -> auction.service.v1.BuyerConsultResult
-	66,  // 96: auction.service.v1.BuyerConsultReply.sources:type_name -> auction.service.v1.BuyerConsultSource
-	5,   // 97: auction.service.v1.BuyerConsultReply.result:type_name -> auction.service.v1.ReplyResult
-	17,  // 98: auction.service.v1.AuctionService.CreateLot:input_type -> auction.service.v1.CreateLotRequest
-	17,  // 99: auction.service.v1.AuctionService.CreateLotDraft:input_type -> auction.service.v1.CreateLotRequest
-	18,  // 100: auction.service.v1.AuctionService.PatchLotDraft:input_type -> auction.service.v1.PatchLotDraftRequest
-	19,  // 101: auction.service.v1.AuctionService.QueueLot:input_type -> auction.service.v1.QueueLotRequest
-	20,  // 102: auction.service.v1.AuctionService.GetLot:input_type -> auction.service.v1.GetLotRequest
-	21,  // 103: auction.service.v1.AuctionService.ListLots:input_type -> auction.service.v1.ListLotsRequest
-	22,  // 104: auction.service.v1.AuctionService.StartLot:input_type -> auction.service.v1.StartLotRequest
-	23,  // 105: auction.service.v1.AuctionService.PlaceBid:input_type -> auction.service.v1.PlaceBidRequest
-	24,  // 106: auction.service.v1.AuctionService.RevealTrustCard:input_type -> auction.service.v1.RevealTrustCardRequest
-	25,  // 107: auction.service.v1.AuctionService.StartDuel:input_type -> auction.service.v1.StartDuelRequest
-	26,  // 108: auction.service.v1.AuctionService.SettleLot:input_type -> auction.service.v1.SettleLotRequest
-	27,  // 109: auction.service.v1.AuctionService.CancelLot:input_type -> auction.service.v1.CancelLotRequest
-	28,  // 110: auction.service.v1.AuctionService.GetRoomSnapshot:input_type -> auction.service.v1.GetRoomSnapshotRequest
-	29,  // 111: auction.service.v1.AuctionService.GetRoomPresence:input_type -> auction.service.v1.GetRoomPresenceRequest
-	30,  // 112: auction.service.v1.AuctionService.ListRoomEvents:input_type -> auction.service.v1.ListRoomEventsRequest
-	32,  // 113: auction.service.v1.AuctionService.GetLotResultView:input_type -> auction.service.v1.GetLotResultRequest
-	33,  // 114: auction.service.v1.AuctionService.ListMyAuctionOrders:input_type -> auction.service.v1.ListAuctionOrdersRequest
-	34,  // 115: auction.service.v1.AuctionService.ListMyBidRecords:input_type -> auction.service.v1.ListBidRecordsRequest
-	33,  // 116: auction.service.v1.AuctionService.ListAdminAuctionOrders:input_type -> auction.service.v1.ListAuctionOrdersRequest
-	35,  // 117: auction.service.v1.AuctionService.ListAdminLotPage:input_type -> auction.service.v1.ListAdminLotPageRequest
-	36,  // 118: auction.service.v1.AuctionService.ListAdminRoomList:input_type -> auction.service.v1.ListAdminRoomsRequest
-	37,  // 119: auction.service.v1.AuctionService.ListPublicRoomList:input_type -> auction.service.v1.ListPublicRoomsRequest
-	38,  // 120: auction.service.v1.AuctionService.ListBuyerSuggestions:input_type -> auction.service.v1.ListBuyerSuggestionsRequest
-	31,  // 121: auction.service.v1.AuctionService.ConsultBuyer:input_type -> auction.service.v1.BuyerConsultRequest
-	44,  // 122: auction.service.v1.AuctionService.CreateLot:output_type -> auction.service.v1.CreateLotReply
-	44,  // 123: auction.service.v1.AuctionService.CreateLotDraft:output_type -> auction.service.v1.CreateLotReply
-	45,  // 124: auction.service.v1.AuctionService.PatchLotDraft:output_type -> auction.service.v1.PatchLotDraftReply
-	46,  // 125: auction.service.v1.AuctionService.QueueLot:output_type -> auction.service.v1.QueueLotReply
-	47,  // 126: auction.service.v1.AuctionService.GetLot:output_type -> auction.service.v1.GetLotReply
-	48,  // 127: auction.service.v1.AuctionService.ListLots:output_type -> auction.service.v1.ListLotsReply
-	49,  // 128: auction.service.v1.AuctionService.StartLot:output_type -> auction.service.v1.StartLotReply
-	50,  // 129: auction.service.v1.AuctionService.PlaceBid:output_type -> auction.service.v1.PlaceBidReply
-	51,  // 130: auction.service.v1.AuctionService.RevealTrustCard:output_type -> auction.service.v1.RevealTrustCardReply
-	52,  // 131: auction.service.v1.AuctionService.StartDuel:output_type -> auction.service.v1.StartDuelReply
-	53,  // 132: auction.service.v1.AuctionService.SettleLot:output_type -> auction.service.v1.SettleLotReply
-	54,  // 133: auction.service.v1.AuctionService.CancelLot:output_type -> auction.service.v1.CancelLotReply
-	55,  // 134: auction.service.v1.AuctionService.GetRoomSnapshot:output_type -> auction.service.v1.GetRoomSnapshotReply
-	56,  // 135: auction.service.v1.AuctionService.GetRoomPresence:output_type -> auction.service.v1.GetRoomPresenceReply
-	57,  // 136: auction.service.v1.AuctionService.ListRoomEvents:output_type -> auction.service.v1.ListRoomEventsReply
-	58,  // 137: auction.service.v1.AuctionService.GetLotResultView:output_type -> auction.service.v1.GetLotResultReply
-	59,  // 138: auction.service.v1.AuctionService.ListMyAuctionOrders:output_type -> auction.service.v1.ListAuctionOrdersReply
-	60,  // 139: auction.service.v1.AuctionService.ListMyBidRecords:output_type -> auction.service.v1.ListBidRecordsReply
-	59,  // 140: auction.service.v1.AuctionService.ListAdminAuctionOrders:output_type -> auction.service.v1.ListAuctionOrdersReply
-	61,  // 141: auction.service.v1.AuctionService.ListAdminLotPage:output_type -> auction.service.v1.ListAdminLotPageReply
-	62,  // 142: auction.service.v1.AuctionService.ListAdminRoomList:output_type -> auction.service.v1.ListRoomsReply
-	63,  // 143: auction.service.v1.AuctionService.ListPublicRoomList:output_type -> auction.service.v1.ListPublicRoomsReply
-	64,  // 144: auction.service.v1.AuctionService.ListBuyerSuggestions:output_type -> auction.service.v1.ListBuyerSuggestionsReply
-	67,  // 145: auction.service.v1.AuctionService.ConsultBuyer:output_type -> auction.service.v1.BuyerConsultReply
-	122, // [122:146] is the sub-list for method output_type
-	98,  // [98:122] is the sub-list for method input_type
-	98,  // [98:98] is the sub-list for extension type_name
-	98,  // [98:98] is the sub-list for extension extendee
-	0,   // [0:98] is the sub-list for field type_name
+	0,   // 0: auction.service.v1.BuyerSearchRequest.statuses:type_name -> auction.service.v1.LotStatus
+	0,   // 1: auction.service.v1.BuyerSearchFilters.statuses:type_name -> auction.service.v1.LotStatus
+	17,  // 2: auction.service.v1.BuyerSearchHit.lot:type_name -> auction.service.v1.Lot
+	9,   // 3: auction.service.v1.BuyerSearchReply.result:type_name -> auction.service.v1.ReplyResult
+	7,   // 4: auction.service.v1.BuyerSearchReply.hits:type_name -> auction.service.v1.BuyerSearchHit
+	6,   // 5: auction.service.v1.BuyerSearchReply.applied_filters:type_name -> auction.service.v1.BuyerSearchFilters
+	10,  // 6: auction.service.v1.BidRule.start_price:type_name -> auction.service.v1.Money
+	10,  // 7: auction.service.v1.BidRule.min_increment:type_name -> auction.service.v1.Money
+	10,  // 8: auction.service.v1.BidRule.cap_price:type_name -> auction.service.v1.Money
+	2,   // 9: auction.service.v1.TrustRevealCard.type:type_name -> auction.service.v1.TrustCardType
+	10,  // 10: auction.service.v1.Bid.amount:type_name -> auction.service.v1.Money
+	10,  // 11: auction.service.v1.RankingItem.amount:type_name -> auction.service.v1.Money
+	0,   // 12: auction.service.v1.Lot.status:type_name -> auction.service.v1.LotStatus
+	12,  // 13: auction.service.v1.Lot.rule:type_name -> auction.service.v1.BidRule
+	10,  // 14: auction.service.v1.Lot.current_price:type_name -> auction.service.v1.Money
+	10,  // 15: auction.service.v1.Lot.final_price:type_name -> auction.service.v1.Money
+	13,  // 16: auction.service.v1.Lot.trust_cards:type_name -> auction.service.v1.TrustRevealCard
+	16,  // 17: auction.service.v1.Lot.duel_state:type_name -> auction.service.v1.DuelState
+	3,   // 18: auction.service.v1.Lot.playbook_stage:type_name -> auction.service.v1.PlaybookStage
+	1,   // 19: auction.service.v1.Lot.queue_status:type_name -> auction.service.v1.LotQueueStatus
+	10,  // 20: auction.service.v1.Lot.estimate_price:type_name -> auction.service.v1.Money
+	10,  // 21: auction.service.v1.Lot.deposit_amount:type_name -> auction.service.v1.Money
+	11,  // 22: auction.service.v1.Lot.stats:type_name -> auction.service.v1.LotStats
+	17,  // 23: auction.service.v1.RoomSnapshot.current_lot:type_name -> auction.service.v1.Lot
+	15,  // 24: auction.service.v1.RoomSnapshot.ranking:type_name -> auction.service.v1.RankingItem
+	14,  // 25: auction.service.v1.RoomSnapshot.recent_bids:type_name -> auction.service.v1.Bid
+	3,   // 26: auction.service.v1.RoomSnapshot.playbook_stage:type_name -> auction.service.v1.PlaybookStage
+	4,   // 27: auction.service.v1.AuctionEvent.type:type_name -> auction.service.v1.AuctionEventType
+	17,  // 28: auction.service.v1.AuctionEvent.lot:type_name -> auction.service.v1.Lot
+	14,  // 29: auction.service.v1.AuctionEvent.bid:type_name -> auction.service.v1.Bid
+	15,  // 30: auction.service.v1.AuctionEvent.ranking:type_name -> auction.service.v1.RankingItem
+	13,  // 31: auction.service.v1.AuctionEvent.trust_card:type_name -> auction.service.v1.TrustRevealCard
+	16,  // 32: auction.service.v1.AuctionEvent.duel_state:type_name -> auction.service.v1.DuelState
+	18,  // 33: auction.service.v1.AuctionEvent.snapshot:type_name -> auction.service.v1.RoomSnapshot
+	12,  // 34: auction.service.v1.CreateLotRequest.rule:type_name -> auction.service.v1.BidRule
+	13,  // 35: auction.service.v1.CreateLotRequest.trust_cards:type_name -> auction.service.v1.TrustRevealCard
+	10,  // 36: auction.service.v1.CreateLotRequest.estimate_price:type_name -> auction.service.v1.Money
+	10,  // 37: auction.service.v1.CreateLotRequest.deposit_amount:type_name -> auction.service.v1.Money
+	12,  // 38: auction.service.v1.PatchLotDraftRequest.rule:type_name -> auction.service.v1.BidRule
+	13,  // 39: auction.service.v1.PatchLotDraftRequest.trust_cards:type_name -> auction.service.v1.TrustRevealCard
+	10,  // 40: auction.service.v1.PatchLotDraftRequest.estimate_price:type_name -> auction.service.v1.Money
+	10,  // 41: auction.service.v1.PatchLotDraftRequest.deposit_amount:type_name -> auction.service.v1.Money
+	0,   // 42: auction.service.v1.ListLotsRequest.status:type_name -> auction.service.v1.LotStatus
+	10,  // 43: auction.service.v1.PlaceBidRequest.amount:type_name -> auction.service.v1.Money
+	0,   // 44: auction.service.v1.ListAdminLotPageRequest.status:type_name -> auction.service.v1.LotStatus
+	44,  // 45: auction.service.v1.DashboardSummary.payment_rate:type_name -> auction.service.v1.DashboardRatio
+	44,  // 46: auction.service.v1.DashboardSummary.deal_rate:type_name -> auction.service.v1.DashboardRatio
+	44,  // 47: auction.service.v1.DashboardCategoryPerformance.deal_rate:type_name -> auction.service.v1.DashboardRatio
+	44,  // 48: auction.service.v1.DashboardLotPerformance.conversion_rate:type_name -> auction.service.v1.DashboardRatio
+	54,  // 49: auction.service.v1.AuctionOrderSummary.shipping_address_snapshot:type_name -> auction.service.v1.AuctionDeliveryAddressSnapshot
+	17,  // 50: auction.service.v1.CreateLotReply.lot:type_name -> auction.service.v1.Lot
+	9,   // 51: auction.service.v1.CreateLotReply.result:type_name -> auction.service.v1.ReplyResult
+	17,  // 52: auction.service.v1.PatchLotDraftReply.lot:type_name -> auction.service.v1.Lot
+	9,   // 53: auction.service.v1.PatchLotDraftReply.result:type_name -> auction.service.v1.ReplyResult
+	17,  // 54: auction.service.v1.QueueLotReply.lot:type_name -> auction.service.v1.Lot
+	20,  // 55: auction.service.v1.QueueLotReply.event:type_name -> auction.service.v1.AuctionEvent
+	9,   // 56: auction.service.v1.QueueLotReply.result:type_name -> auction.service.v1.ReplyResult
+	17,  // 57: auction.service.v1.GetLotReply.lot:type_name -> auction.service.v1.Lot
+	9,   // 58: auction.service.v1.GetLotReply.result:type_name -> auction.service.v1.ReplyResult
+	17,  // 59: auction.service.v1.ListLotsReply.lots:type_name -> auction.service.v1.Lot
+	9,   // 60: auction.service.v1.ListLotsReply.result:type_name -> auction.service.v1.ReplyResult
+	17,  // 61: auction.service.v1.StartLotReply.lot:type_name -> auction.service.v1.Lot
+	20,  // 62: auction.service.v1.StartLotReply.event:type_name -> auction.service.v1.AuctionEvent
+	9,   // 63: auction.service.v1.StartLotReply.result:type_name -> auction.service.v1.ReplyResult
+	17,  // 64: auction.service.v1.PlaceBidReply.lot:type_name -> auction.service.v1.Lot
+	14,  // 65: auction.service.v1.PlaceBidReply.bid:type_name -> auction.service.v1.Bid
+	15,  // 66: auction.service.v1.PlaceBidReply.ranking:type_name -> auction.service.v1.RankingItem
+	20,  // 67: auction.service.v1.PlaceBidReply.event:type_name -> auction.service.v1.AuctionEvent
+	9,   // 68: auction.service.v1.PlaceBidReply.result:type_name -> auction.service.v1.ReplyResult
+	17,  // 69: auction.service.v1.RevealTrustCardReply.lot:type_name -> auction.service.v1.Lot
+	13,  // 70: auction.service.v1.RevealTrustCardReply.trust_card:type_name -> auction.service.v1.TrustRevealCard
+	20,  // 71: auction.service.v1.RevealTrustCardReply.event:type_name -> auction.service.v1.AuctionEvent
+	9,   // 72: auction.service.v1.RevealTrustCardReply.result:type_name -> auction.service.v1.ReplyResult
+	17,  // 73: auction.service.v1.StartDuelReply.lot:type_name -> auction.service.v1.Lot
+	16,  // 74: auction.service.v1.StartDuelReply.duel_state:type_name -> auction.service.v1.DuelState
+	20,  // 75: auction.service.v1.StartDuelReply.event:type_name -> auction.service.v1.AuctionEvent
+	9,   // 76: auction.service.v1.StartDuelReply.result:type_name -> auction.service.v1.ReplyResult
+	17,  // 77: auction.service.v1.SettleLotReply.lot:type_name -> auction.service.v1.Lot
+	20,  // 78: auction.service.v1.SettleLotReply.event:type_name -> auction.service.v1.AuctionEvent
+	9,   // 79: auction.service.v1.SettleLotReply.result:type_name -> auction.service.v1.ReplyResult
+	17,  // 80: auction.service.v1.CancelLotReply.lot:type_name -> auction.service.v1.Lot
+	20,  // 81: auction.service.v1.CancelLotReply.event:type_name -> auction.service.v1.AuctionEvent
+	9,   // 82: auction.service.v1.CancelLotReply.result:type_name -> auction.service.v1.ReplyResult
+	18,  // 83: auction.service.v1.GetRoomSnapshotReply.snapshot:type_name -> auction.service.v1.RoomSnapshot
+	9,   // 84: auction.service.v1.GetRoomSnapshotReply.result:type_name -> auction.service.v1.ReplyResult
+	19,  // 85: auction.service.v1.GetRoomPresenceReply.presence:type_name -> auction.service.v1.RoomPresence
+	9,   // 86: auction.service.v1.GetRoomPresenceReply.result:type_name -> auction.service.v1.ReplyResult
+	20,  // 87: auction.service.v1.ListRoomEventsReply.events:type_name -> auction.service.v1.AuctionEvent
+	9,   // 88: auction.service.v1.ListRoomEventsReply.result:type_name -> auction.service.v1.ReplyResult
+	17,  // 89: auction.service.v1.GetLotResultReply.lot:type_name -> auction.service.v1.Lot
+	55,  // 90: auction.service.v1.GetLotResultReply.order:type_name -> auction.service.v1.AuctionOrderSummary
+	9,   // 91: auction.service.v1.GetLotResultReply.result:type_name -> auction.service.v1.ReplyResult
+	55,  // 92: auction.service.v1.ListAuctionOrdersReply.orders:type_name -> auction.service.v1.AuctionOrderSummary
+	9,   // 93: auction.service.v1.ListAuctionOrdersReply.result:type_name -> auction.service.v1.ReplyResult
+	56,  // 94: auction.service.v1.ListBidRecordsReply.bids:type_name -> auction.service.v1.AuctionBidRecord
+	9,   // 95: auction.service.v1.ListBidRecordsReply.result:type_name -> auction.service.v1.ReplyResult
+	17,  // 96: auction.service.v1.ListAdminLotPageReply.lots:type_name -> auction.service.v1.Lot
+	9,   // 97: auction.service.v1.ListAdminLotPageReply.result:type_name -> auction.service.v1.ReplyResult
+	57,  // 98: auction.service.v1.ListRoomsReply.rooms:type_name -> auction.service.v1.AuctionRoom
+	9,   // 99: auction.service.v1.ListRoomsReply.result:type_name -> auction.service.v1.ReplyResult
+	57,  // 100: auction.service.v1.ListPublicRoomsReply.rooms:type_name -> auction.service.v1.AuctionRoom
+	9,   // 101: auction.service.v1.ListPublicRoomsReply.result:type_name -> auction.service.v1.ReplyResult
+	58,  // 102: auction.service.v1.ListBuyerSuggestionsReply.suggestions:type_name -> auction.service.v1.BuyerSuggestion
+	9,   // 103: auction.service.v1.ListBuyerSuggestionsReply.result:type_name -> auction.service.v1.ReplyResult
+	45,  // 104: auction.service.v1.GetAdminDashboardReply.range:type_name -> auction.service.v1.DashboardRange
+	46,  // 105: auction.service.v1.GetAdminDashboardReply.summary:type_name -> auction.service.v1.DashboardSummary
+	47,  // 106: auction.service.v1.GetAdminDashboardReply.funnel:type_name -> auction.service.v1.DashboardFunnel
+	48,  // 107: auction.service.v1.GetAdminDashboardReply.trend:type_name -> auction.service.v1.DashboardTrendPoint
+	49,  // 108: auction.service.v1.GetAdminDashboardReply.top_lots:type_name -> auction.service.v1.DashboardTopLot
+	50,  // 109: auction.service.v1.GetAdminDashboardReply.categories:type_name -> auction.service.v1.DashboardCategoryPerformance
+	51,  // 110: auction.service.v1.GetAdminDashboardReply.order_risks:type_name -> auction.service.v1.DashboardOrderRisks
+	52,  // 111: auction.service.v1.GetAdminDashboardReply.lot_performance:type_name -> auction.service.v1.DashboardLotPerformance
+	53,  // 112: auction.service.v1.GetAdminDashboardReply.partial_errors:type_name -> auction.service.v1.DashboardPartialError
+	9,   // 113: auction.service.v1.GetAdminDashboardReply.result:type_name -> auction.service.v1.ReplyResult
+	10,  // 114: auction.service.v1.BuyerConsultResult.current_price:type_name -> auction.service.v1.Money
+	81,  // 115: auction.service.v1.BuyerConsultReply.results:type_name -> auction.service.v1.BuyerConsultResult
+	82,  // 116: auction.service.v1.BuyerConsultReply.sources:type_name -> auction.service.v1.BuyerConsultSource
+	9,   // 117: auction.service.v1.BuyerConsultReply.result:type_name -> auction.service.v1.ReplyResult
+	21,  // 118: auction.service.v1.AuctionService.CreateLot:input_type -> auction.service.v1.CreateLotRequest
+	21,  // 119: auction.service.v1.AuctionService.CreateLotDraft:input_type -> auction.service.v1.CreateLotRequest
+	22,  // 120: auction.service.v1.AuctionService.PatchLotDraft:input_type -> auction.service.v1.PatchLotDraftRequest
+	23,  // 121: auction.service.v1.AuctionService.QueueLot:input_type -> auction.service.v1.QueueLotRequest
+	24,  // 122: auction.service.v1.AuctionService.GetLot:input_type -> auction.service.v1.GetLotRequest
+	25,  // 123: auction.service.v1.AuctionService.ListLots:input_type -> auction.service.v1.ListLotsRequest
+	26,  // 124: auction.service.v1.AuctionService.StartLot:input_type -> auction.service.v1.StartLotRequest
+	27,  // 125: auction.service.v1.AuctionService.PlaceBid:input_type -> auction.service.v1.PlaceBidRequest
+	28,  // 126: auction.service.v1.AuctionService.RevealTrustCard:input_type -> auction.service.v1.RevealTrustCardRequest
+	29,  // 127: auction.service.v1.AuctionService.StartDuel:input_type -> auction.service.v1.StartDuelRequest
+	30,  // 128: auction.service.v1.AuctionService.SettleLot:input_type -> auction.service.v1.SettleLotRequest
+	31,  // 129: auction.service.v1.AuctionService.CancelLot:input_type -> auction.service.v1.CancelLotRequest
+	32,  // 130: auction.service.v1.AuctionService.GetRoomSnapshot:input_type -> auction.service.v1.GetRoomSnapshotRequest
+	33,  // 131: auction.service.v1.AuctionService.GetRoomPresence:input_type -> auction.service.v1.GetRoomPresenceRequest
+	34,  // 132: auction.service.v1.AuctionService.ListRoomEvents:input_type -> auction.service.v1.ListRoomEventsRequest
+	36,  // 133: auction.service.v1.AuctionService.GetLotResultView:input_type -> auction.service.v1.GetLotResultRequest
+	37,  // 134: auction.service.v1.AuctionService.ListMyAuctionOrders:input_type -> auction.service.v1.ListAuctionOrdersRequest
+	38,  // 135: auction.service.v1.AuctionService.ListMyBidRecords:input_type -> auction.service.v1.ListBidRecordsRequest
+	37,  // 136: auction.service.v1.AuctionService.ListAdminAuctionOrders:input_type -> auction.service.v1.ListAuctionOrdersRequest
+	39,  // 137: auction.service.v1.AuctionService.ListAdminLotPage:input_type -> auction.service.v1.ListAdminLotPageRequest
+	24,  // 138: auction.service.v1.AuctionService.GetAdminLot:input_type -> auction.service.v1.GetLotRequest
+	40,  // 139: auction.service.v1.AuctionService.ListAdminRoomList:input_type -> auction.service.v1.ListAdminRoomsRequest
+	43,  // 140: auction.service.v1.AuctionService.GetAdminDashboard:input_type -> auction.service.v1.GetAdminDashboardRequest
+	41,  // 141: auction.service.v1.AuctionService.ListPublicRoomList:input_type -> auction.service.v1.ListPublicRoomsRequest
+	42,  // 142: auction.service.v1.AuctionService.ListBuyerSuggestions:input_type -> auction.service.v1.ListBuyerSuggestionsRequest
+	5,   // 143: auction.service.v1.AuctionService.SearchBuyerLots:input_type -> auction.service.v1.BuyerSearchRequest
+	35,  // 144: auction.service.v1.AuctionService.ConsultBuyer:input_type -> auction.service.v1.BuyerConsultRequest
+	59,  // 145: auction.service.v1.AuctionService.CreateLot:output_type -> auction.service.v1.CreateLotReply
+	59,  // 146: auction.service.v1.AuctionService.CreateLotDraft:output_type -> auction.service.v1.CreateLotReply
+	60,  // 147: auction.service.v1.AuctionService.PatchLotDraft:output_type -> auction.service.v1.PatchLotDraftReply
+	61,  // 148: auction.service.v1.AuctionService.QueueLot:output_type -> auction.service.v1.QueueLotReply
+	62,  // 149: auction.service.v1.AuctionService.GetLot:output_type -> auction.service.v1.GetLotReply
+	63,  // 150: auction.service.v1.AuctionService.ListLots:output_type -> auction.service.v1.ListLotsReply
+	64,  // 151: auction.service.v1.AuctionService.StartLot:output_type -> auction.service.v1.StartLotReply
+	65,  // 152: auction.service.v1.AuctionService.PlaceBid:output_type -> auction.service.v1.PlaceBidReply
+	66,  // 153: auction.service.v1.AuctionService.RevealTrustCard:output_type -> auction.service.v1.RevealTrustCardReply
+	67,  // 154: auction.service.v1.AuctionService.StartDuel:output_type -> auction.service.v1.StartDuelReply
+	68,  // 155: auction.service.v1.AuctionService.SettleLot:output_type -> auction.service.v1.SettleLotReply
+	69,  // 156: auction.service.v1.AuctionService.CancelLot:output_type -> auction.service.v1.CancelLotReply
+	70,  // 157: auction.service.v1.AuctionService.GetRoomSnapshot:output_type -> auction.service.v1.GetRoomSnapshotReply
+	71,  // 158: auction.service.v1.AuctionService.GetRoomPresence:output_type -> auction.service.v1.GetRoomPresenceReply
+	72,  // 159: auction.service.v1.AuctionService.ListRoomEvents:output_type -> auction.service.v1.ListRoomEventsReply
+	73,  // 160: auction.service.v1.AuctionService.GetLotResultView:output_type -> auction.service.v1.GetLotResultReply
+	74,  // 161: auction.service.v1.AuctionService.ListMyAuctionOrders:output_type -> auction.service.v1.ListAuctionOrdersReply
+	75,  // 162: auction.service.v1.AuctionService.ListMyBidRecords:output_type -> auction.service.v1.ListBidRecordsReply
+	74,  // 163: auction.service.v1.AuctionService.ListAdminAuctionOrders:output_type -> auction.service.v1.ListAuctionOrdersReply
+	76,  // 164: auction.service.v1.AuctionService.ListAdminLotPage:output_type -> auction.service.v1.ListAdminLotPageReply
+	62,  // 165: auction.service.v1.AuctionService.GetAdminLot:output_type -> auction.service.v1.GetLotReply
+	77,  // 166: auction.service.v1.AuctionService.ListAdminRoomList:output_type -> auction.service.v1.ListRoomsReply
+	80,  // 167: auction.service.v1.AuctionService.GetAdminDashboard:output_type -> auction.service.v1.GetAdminDashboardReply
+	78,  // 168: auction.service.v1.AuctionService.ListPublicRoomList:output_type -> auction.service.v1.ListPublicRoomsReply
+	79,  // 169: auction.service.v1.AuctionService.ListBuyerSuggestions:output_type -> auction.service.v1.ListBuyerSuggestionsReply
+	8,   // 170: auction.service.v1.AuctionService.SearchBuyerLots:output_type -> auction.service.v1.BuyerSearchReply
+	83,  // 171: auction.service.v1.AuctionService.ConsultBuyer:output_type -> auction.service.v1.BuyerConsultReply
+	145, // [145:172] is the sub-list for method output_type
+	118, // [118:145] is the sub-list for method input_type
+	118, // [118:118] is the sub-list for extension type_name
+	118, // [118:118] is the sub-list for extension extendee
+	0,   // [0:118] is the sub-list for field type_name
 }
 
 func init() { file_api_auction_service_v1_auction_proto_init() }
@@ -6403,13 +7890,15 @@ func file_api_auction_service_v1_auction_proto_init() {
 	if File_api_auction_service_v1_auction_proto != nil {
 		return
 	}
+	file_api_auction_service_v1_auction_proto_msgTypes[0].OneofWrappers = []any{}
+	file_api_auction_service_v1_auction_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_auction_service_v1_auction_proto_rawDesc), len(file_api_auction_service_v1_auction_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   63,
+			NumMessages:   79,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -79,6 +79,14 @@ Gateway-specific metrics:
 | `auction_gateway_shard_status{shard,status}` | Gateway registry status gauge; one status should be `1` per shard. |
 | `auction_gateway_room_assignments{shard}` | Number of pinned/known room assignments per shard. |
 
+Metric compatibility note: `auction_ws_connections` is aggregated only by the
+bounded `scope` label (`public`, `admin`, or `other`). The former `room_id`
+label was removed to prevent persistent per-room time-series growth. Remove
+`room_id` matchers from external WebSocket connection queries; use structured
+Hub logs or room-presence APIs for room-level debugging. The provisioned
+overview dashboard keeps its Room variable by sourcing it from
+`auction_active_lots` instead.
+
 ## Runtime Control Plane
 
 Set `AUCTION_GATEWAY_ADMIN_TOKEN` only during an explicit cluster operation

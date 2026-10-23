@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package agent.v1;
+
+option go_package = "live-auction-bid/backend/api/agent/v1;agentv1";
+
+message RequestContext {
+  string request_id = 1;
+  string trace_id = 2;
+  string run_id = 3;
+  string tenant_id = 4;
+  string operator_id = 5;
+}
+
+enum RunStatus {
+  RUN_STATUS_UNSPECIFIED = 0;
+  RUN_STATUS_CREATED = 1;
+  RUN_STATUS_PLANNING = 2;
+  RUN_STATUS_COLLECTING_CONTEXT = 3;
+  RUN_STATUS_GENERATING_PROPOSAL = 4;
+  RUN_STATUS_VERIFYING = 5;
+  RUN_STATUS_COMPLETED = 6;
+  RUN_STATUS_FAILED = 7;
+  RUN_STATUS_CANCELLED = 8;
+}
+
+enum RunType {
+  RUN_TYPE_UNSPECIFIED = 0;
+  RUN_TYPE_SESSION_PLAN = 1;
+  RUN_TYPE_LOT_DRAFT_ASSIST = 2;
+}

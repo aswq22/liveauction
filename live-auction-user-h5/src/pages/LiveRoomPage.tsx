@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import '../features/douyin-shell/douyin-shell.css';
 import { listPublicRooms } from '../features/auction/api/auctionApi';
 import { DOUYIN_LIVE_CHANNEL_INDEX, writeHomeReturnState } from '../features/douyin-shell/model/homeReturnState';
 import { LiveRoomView } from '../features/live-room/components/LiveRoomView';

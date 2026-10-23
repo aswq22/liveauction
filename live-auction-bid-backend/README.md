@@ -33,13 +33,13 @@ P0 硬点：0 元起拍、固定加价、封顶价自动成交、10-30 秒自动
 ```bash
 cd deploy
 cp .env.example .env
-# 编辑 deploy/.env，填写 TOS endpoint、region、bucket、AK 和 SK。
+# 默认使用 local 图片存储，无需填写 TOS 配置。
 docker compose up --build
 ```
 
 服务默认监听：`http://127.0.0.1:18080`。
 
-后端默认使用 TOS 作为图片存储。Docker Compose 启动前必须复制 `deploy/.env.example` 为 `deploy/.env` 并填写 TOS 配置；如果 `AUCTION_STORAGE_PROVIDER=tos` 且 endpoint、region、bucket、access key、secret key 任一缺失，Compose 或后端会 fail fast，不会等到 upload 接口才返回 `storage not configured`。
+Docker Compose 默认使用 `AUCTION_STORAGE_PROVIDER=local`，图片保存在宿主机 `deploy/local-assets`，本地启动无需 TOS。只有显式将 `AUCTION_STORAGE_PROVIDER` 切换为 `tos` 时，才需要填写 endpoint、region、bucket、access key 和 secret key；任一必填项缺失时 Compose 或后端会 fail fast，不会等到 upload 接口才返回 `storage not configured`。
 
 Docker Compose 默认创建本地主账号：
 
@@ -54,6 +54,78 @@ password: main_dev_password
 curl http://127.0.0.1:18080/healthz
 curl http://127.0.0.1:18080/readyz
 ```
+
+### 只读规划 Agent Compose profile
+
+本地规划链路由商家端调用 Go HTTP/JWT Agent Run API；POST 必须携带 UUID `Idempotency-Key`，MySQL 以 `(tenant, operator, key)` 唯一约束处理并发与响应丢失重试，同 key 不同规范化 goal 返回 409。Go 从 JWT claims 派生 `tenant_id` 和 `operator_id`，再调用 Python runtime。`StartRun` 的 Unavailable、Deadline、Canceled、Unknown 等结果未知错误不会写本地失败终态；Run 保持可投影，projector 遇到 Python NotFound 时以相同 Run ID、goal、tenant/operator 和 trace 幂等重放 StartRun。只有容量、参数、权限等明确拒绝才本地终结。每个未完成 Run 只有一个受应用生命周期管理的后台 projector；它按独立持久化的 Python source sequence 断点续传，把事件写入 Go durable log，并在同一事务内落终态、proposal 与安全错误。浏览器 SSE 只 replay/poll Go 日志，不直接占 Python subscriber。Python 只能通过 Go 暴露的 `inventory.query`、`auction.history.query`、`session.snapshot.get` 三个 gRPC 只读工具取证，不能直接写拍品、出价、订单或支付业务表。最终 proposal 的 lot ID 必须来自该主账号的 inventory evidence。
+
+```bash
+cd deploy
+cp .env.example .env
+docker compose --profile agent up -d --build
+docker compose --profile agent ps
+```
+
+该 profile 增加 `auction-agent` 和 `pgvector`。本地端口如下：
+
+| 服务 | 容器地址 | 宿主地址 |
+| --- | --- | --- |
+| Go HTTP API | `auction-backend:18080` | `127.0.0.1:18080` |
+| Python Agent runtime gRPC | `auction-agent:19081` | Not published; Compose network only |
+| Go read-only tool gRPC | `auction-backend:19082` | Not published; Compose network only |
+| PostgreSQL / pgvector | `pgvector:5432` | `127.0.0.1:15432` |
+
+关键配置为 `AUCTION_AGENT_RUNTIME_ADDR`、`AUCTION_AGENT_TOOL_GRPC_ADDR`、`AUCTION_TOOL_GRPC_ADDR`、`AUCTION_INTERNAL_SERVICE_TOKEN`、`AGENT_DATABASE_DSN` 和 `AGENT_MODEL_PROVIDER`。Compose 默认 `AGENT_MODEL_PROVIDER=mock`，无需模型密钥；`.env.example` 的共享 token 只适合本地开发，其他环境必须替换且不得提交真实 secret。
+
+默认登录仍为 `main / main_dev_password`。安全停止且保留 containers/volumes：
+
+```bash
+docker compose --profile agent stop
+```
+
+故障隔离是有意设计：backend readiness 不依赖 Agent。单独执行 `docker compose --profile agent stop auction-agent` 后，`GET /readyz` 仍返回 `{"ok":true}`，普通拍品与竞价链路继续工作，只有新建 Agent Run 稳定返回 `AGENT_RUNTIME_UNAVAILABLE`。恢复使用 `docker compose --profile agent start auction-agent`。
+
+真实只读验收：
+
+```bash
+cd ../../live-auction-agent-service
+python -m pytest tests/e2e/test_readonly_planning.py -v
+```
+
+测试通过真实 Go 登录/JWT/ownership 边界创建 Run、等待 proposal，并验证 lot ID 全属于登录主账号。
+
+### 对话式生成、确认与入队
+
+商家后台 `/admin/agent` 支持可恢复会话：自然语言生成 EXISTING/NEW 候选项，缺名称、起拍价、时长或主图时只追问必要字段；字段和来源可编辑。确认页默认全选，允许取消和批内排序。不可变快照确认后，Go `Apply` 才在一个 MySQL 事务内创建 NEW lot、绑定资产、写审计/Outbox，并从旧队尾分配连续位置。成功入队不会自动开拍。
+
+Python Agent 没有创建、修改、入队或开拍工具。失效资产、候选版本或快照冲突会整批回滚；相同幂等键重放返回相同 execution 与 lot IDs。
+
+使用项目固定的 Python 3.12 测试镜像，不要直接使用当前宿主机 Python 3.14：
+
+```powershell
+cd D:\Go\Auc\ByteDanceliveauctioni
+docker build -t live-auction-agent-service:test -f live-auction-agent-service\Dockerfile.test .
+docker run --rm --add-host host.docker.internal:host-gateway `
+  -v "${PWD}:/workspace" `
+  -v /var/run/docker.sock:/var/run/docker.sock `
+  -w /workspace/live-auction-agent-service `
+  -e AUCTION_E2E_BASE_URL=http://host.docker.internal:18080 `
+  live-auction-agent-service:test `
+  python -m pytest tests/e2e/test_conversation_approval.py -v
+```
+
+E2E 注册独立测试主账号和房间，只清理自己的数据；不会清空共享数据库。完整人工演示与原子回滚步骤见 `..\docs\agent-conversation-demo.md`。
+
+只读验证不是固定表清单或 `COUNT(*)`：登录和 seed 完成后，测试动态枚举当前 MySQL schema，仅排除 `agent_runs` / `agent_run_events` 两张 Agent 编排表；在 REPEATABLE READ 一致性事务内按列序、列名、类型、NULL/字节长度/HEX 值和稳定行序抓取所有其余表的完整快照。因此 UPDATE、等量增删以及 products/SKU、room state 等表的变化都会失败。
+
+Agent 故障隔离由宿主机单独编排，不把 Docker socket 挂进生产 agent 容器：
+
+```bash
+cd ../../live-auction-agent-service
+python -m pytest tests/e2e/test_failure_isolation.py -v
+```
+
+该测试只停止 `auction-agent`，验证 readiness 和普通 lot list 后，创建带唯一前缀的独立 merchant/bidder、LIVE lot、地址与 mock 保证金，通过真实 HTTP/JWT 成功接受一笔竞价，再验证新 Agent Run 稳定失败为 `AGENT_RUNTIME_UNAVAILABLE`；`finally` 始终启动 agent 并等待 healthy。测试保留 volumes，不执行 `down -v`。
 
 ### 旧数据库 volume 与 migration
 
@@ -79,12 +151,12 @@ deploy/mysql/migrations/20260531_full_rbac_replace.sql
 
 前端添加拍品页统一调用 `POST /api/uploads/images`，后端通过 `StorageProvider` 接火山引擎 TOS。AK/SK 只放运行环境变量，不进入前端或仓库。
 
-本地 Docker Compose 必须复制模板后填写 TOS 配置：
+Docker Compose 默认使用 local 图片存储。仅在需要接入火山引擎 TOS 时，才将 provider 切换为 `tos` 并填写以下配置：
 
 ```bash
 cd deploy
 cp .env.example .env
-# 编辑 deploy/.env，填入 AUCTION_TOS_ENDPOINT / AUCTION_TOS_REGION / AUCTION_TOS_BUCKET / AUCTION_TOS_ACCESS_KEY / AUCTION_TOS_SECRET_KEY
+# 编辑 deploy/.env，将 AUCTION_STORAGE_PROVIDER 改为 tos，并填写下面的 TOS 变量。
 ```
 
 配置示例只展示字段名，真实值只放本地 `deploy/.env`：

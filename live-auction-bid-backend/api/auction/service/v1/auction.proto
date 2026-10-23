@@ -229,10 +229,24 @@ service AuctionService {
     };
   }
 
+  // 按精确 ID 查询后台拍品；重新校验当前权限与令牌租户。
+  rpc GetAdminLot(GetLotRequest) returns (GetLotReply) {
+    option (google.api.http) = {
+      get: "/api/admin/lots/{lot_id}"
+    };
+  }
+
   // 查询后台房间。
   rpc ListAdminRoomList(ListAdminRoomsRequest) returns (ListRoomsReply) {
     option (google.api.http) = {
       get: "/api/admin/rooms"
+    };
+  }
+
+  // 查询后台经营仪表盘。
+  rpc GetAdminDashboard(GetAdminDashboardRequest) returns (GetAdminDashboardReply) {
+    option (google.api.http) = {
+      get: "/api/admin/dashboard"
     };
   }
 
@@ -255,6 +269,10 @@ service AuctionService {
   // 调用方：观众端。
   // 用途：根据用户输入的品类、预算或用途，返回公开可见的候选竞拍拍品。
   // 注意：这里只做找拍品和来源解释，不返回出价建议。
+  rpc SearchBuyerLots(BuyerSearchRequest) returns (BuyerSearchReply) {
+    option (google.api.http) = { post: "/api/buyer/lots/search" body: "*" };
+  }
+
   rpc ConsultBuyer(BuyerConsultRequest) returns (BuyerConsultReply) {
     option (google.api.http) = {
       post: "/api/ai/buyer/consult"
@@ -266,6 +284,37 @@ service AuctionService {
 // ============================================================================
 // 基础值对象
 // ============================================================================
+
+message BuyerSearchRequest {
+  string query = 1;
+  string room_id = 2;
+  optional int64 min_price_amount = 3;
+  optional int64 max_price_amount = 4;
+  repeated LotStatus statuses = 5;
+  int32 page_size = 6;
+  string cursor = 7;
+}
+message BuyerSearchFilters {
+  string room_id = 1;
+  optional int64 min_price_amount = 2;
+  optional int64 max_price_amount = 3;
+  repeated LotStatus statuses = 4;
+}
+message BuyerSearchHit {
+  Lot lot = 1;
+  string match_reason = 2;
+  int64 facts_read_at_unix_ms = 3;
+  string href = 4;
+}
+message BuyerSearchReply {
+  ReplyResult result = 1;
+  repeated BuyerSearchHit hits = 2;
+  BuyerSearchFilters applied_filters = 3;
+  repeated string warnings = 4;
+  string mode = 5; // HYBRID or LEXICAL, never silently disguised.
+  string degraded_reason = 6;
+  string next_cursor = 7;
+}
 
 
 // ReplyResult 表示所有 service 响应的统一返回头。
@@ -1092,6 +1141,98 @@ message ListBuyerSuggestionsRequest {
   int32 limit = 1;
 }
 
+// 后台仪表盘请求不接受租户字段；租户始终从认证 claims 中派生。
+message GetAdminDashboardRequest {
+  string range = 1;
+  string timezone = 2;
+  repeated string sections = 3;
+}
+
+message DashboardRatio {
+  int64 numerator = 1;
+  int64 denominator = 2;
+  double rate = 3;
+}
+
+message DashboardRange {
+  string range = 1;
+  string timezone = 2;
+  int64 start_unix_ms = 3;
+  int64 end_unix_ms = 4;
+}
+
+message DashboardSummary {
+  int64 gmv_amount = 1;
+  int64 paid_amount = 2;
+  int64 pending_amount = 3;
+  int64 order_count = 4;
+  int64 cancelled_order_count = 5;
+  int64 participant_count = 6;
+  int64 average_deal_amount = 7;
+  DashboardRatio payment_rate = 8;
+  DashboardRatio deal_rate = 9;
+}
+
+message DashboardFunnel {
+  int64 created_lot_count = 1;
+  int64 listed_lot_count = 2;
+  int64 started_lot_count = 3;
+  int64 bid_lot_count = 4;
+  int64 settled_lot_count = 5;
+  int64 paid_lot_count = 6;
+}
+
+message DashboardTrendPoint {
+  int64 start_unix_ms = 1;
+  int64 end_unix_ms = 2;
+  int64 paid_amount = 3;
+  int64 paid_orders = 4;
+  int64 bidders = 5;
+}
+
+message DashboardTopLot {
+  string lot_id = 1;
+  string title = 2;
+  string category = 3;
+  int64 paid_amount = 4;
+  int64 final_amount = 5;
+  int64 bid_count = 6;
+  int64 participant_count = 7;
+}
+
+message DashboardCategoryPerformance {
+  string category = 1;
+  int64 paid_amount = 2;
+  int64 started_lot_count = 3;
+  int64 settled_lot_count = 4;
+  DashboardRatio deal_rate = 5;
+}
+
+message DashboardOrderRisks {
+  int64 pending_payment_count = 1;
+  int64 expiring_soon_count = 2;
+  int64 expired_count = 3;
+  int64 payment_failed_count = 4;
+}
+
+message DashboardLotPerformance {
+  string lot_id = 1;
+  string title = 2;
+  string category = 3;
+  string status = 4;
+  int64 bid_count = 5;
+  int64 participant_count = 6;
+  int64 final_amount = 7;
+  int64 paid_amount = 8;
+  DashboardRatio conversion_rate = 9;
+}
+
+message DashboardPartialError {
+  string section = 1;
+  string code = 2;
+  string message = 3;
+}
+
 message AuctionDeliveryAddressSnapshot {
   string address_id = 1;
   string receiver_name = 2;
@@ -1382,6 +1523,25 @@ message ListPublicRoomsReply {
 message ListBuyerSuggestionsReply {
   repeated BuyerSuggestion suggestions = 1;
   bool fallback_used = 2;
+  ReplyResult result = 99;
+}
+
+message GetAdminDashboardReply {
+  string currency = 1;
+  DashboardRange range = 2;
+  int64 snapshot_at_unix_ms = 3;
+  DashboardSummary summary = 4;
+  DashboardFunnel funnel = 5;
+  // Complete buckets: today 24, 7d 7, 30d 30; live at most 720 with adaptive width.
+  repeated DashboardTrendPoint trend = 6;
+  // Top 10 by paid_amount DESC, lot_id ASC.
+  repeated DashboardTopLot top_lots = 7;
+  // All categories (at most 1000); overflow omits this panel with DATA_INCOMPLETE.
+  repeated DashboardCategoryPerformance categories = 8;
+  DashboardOrderRisks order_risks = 9;
+  // Top 100 detail rows by paid_amount DESC, lot_id ASC, not all matching lots.
+  repeated DashboardLotPerformance lot_performance = 10;
+  repeated DashboardPartialError partial_errors = 11;
   ReplyResult result = 99;
 }
 

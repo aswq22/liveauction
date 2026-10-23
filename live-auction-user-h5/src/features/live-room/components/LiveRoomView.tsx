@@ -1,4 +1,4 @@
-import { type CSSProperties, type TouchEvent, type WheelEvent, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type FormEvent, type TouchEvent, type WheelEvent, useEffect, useRef, useState } from 'react';
 import { LivePlayer } from '../../live/components/LivePlayer';
 import { resolveInitialLiveSource, resolveLivePlaylist } from '../../live/hooks/useLivePlayer';
 import { DepositPayModal } from '../../payment-flow/components/DepositPayModal';
@@ -77,8 +77,6 @@ function shouldIgnoreRoomSwipe(target: EventTarget | null) {
     '[role="button"]',
     '.auctionDrawerMask',
     '.auctionDrawer',
-    '.dyCommentOverlay',
-    '.dyCommentSheet',
     '.douyinSheetMask',
     '.douyinBottomSheet',
     '.liveProductFloatCard',
@@ -305,14 +303,19 @@ type GiftBurst = { id: number; name: string };
 function LiveRoomEffectsLayer({ controller, giftBurst }: { controller: LiveRoomController; giftBurst: GiftBurst | null }) {
   const { anchorName, currentLot, room, notices } = controller;
   type ChatMessage = { id: string; name: string; text: string; system?: boolean };
-  const seededMessages = room.recentBids.slice(0, 4).map((bid, index) => ({
+  const barrageMessages = room.barrages.slice(0, 4).map((message) => ({
+    id: message.id,
+    name: message.displayName || '拍友',
+    text: message.count > 1 ? `${message.content} ×${message.count}` : message.content,
+  }));
+  const bidMessages = room.recentBids.slice(0, 4).map((bid, index) => ({
     id: bid.id || `${bid.userId}-${index}`,
     name: bid.nickname || `拍友${bid.userId.slice(-4)}`,
     text: bid.accepted === false
       ? businessErrorMessage(bid.rejectReason, { lot: currentLot || undefined }) || '刚刚互动未成功'
       : `刚刚关注了这件商品`,
   }));
-  const messages: ChatMessage[] = seededMessages.length ? seededMessages : [
+  const messages: ChatMessage[] = barrageMessages.length ? barrageMessages : bidMessages.length ? bidMessages : [
     { id: 'demo-welcome', name: anchorName, text: currentLot ? `正在竞拍 ${currentLot.title}` : '欢迎来到直播间' },
     { id: 'demo-detail', name: '拍友7281', text: '主播可以再看一下细节吗' },
     { id: 'demo-product', name: '收藏新手', text: '等主播讲到细节我再看商品' },
@@ -329,16 +332,30 @@ function LiveRoomEffectsLayer({ controller, giftBurst }: { controller: LiveRoomC
     { userId: 'demo-b', nickname: '收藏顾问' },
     { userId: 'demo-c', nickname: '拍场观察' },
   ]).slice(0, 3);
-  const barrage = [
-    currentLot ? `${currentLot.title} 正在竞拍` : `${anchorName} 正在直播`,
-    notices[0] || '喜欢这件可以打开商品',
-    room.recentBids[0] ? `${room.recentBids[0].nickname || '拍友'} 刚刚关注商品` : '直播间热度上升',
+  const barrage = room.barrages.length ? room.barrages.slice(0, 12).map((message) => ({
+    id: message.id,
+    text: message.count > 1 ? `${message.content} ×${message.count}` : message.content,
+  })) : [
+    { id: 'demo-lot', text: currentLot ? `${currentLot.title} 正在竞拍` : `${anchorName} 正在直播` },
+    { id: 'demo-notice', text: notices[0] || '喜欢这件可以打开商品' },
+    { id: 'demo-bid', text: room.recentBids[0] ? `${room.recentBids[0].nickname || '拍友'} 刚刚关注商品` : '直播间热度上升' },
   ];
 
   return (
     <section className="liveEffectsLayer" aria-label="直播互动动态">
-      <div className="liveBarrageLane" aria-hidden="true">
-        {barrage.map((text, index) => <span key={`${text}-${index}`}>{text}</span>)}
+      <div className="liveBarrageLane" aria-label="实时弹幕">
+        {barrage.map((message, index) => (
+          <span
+            className={`barrageTrack${index % 3}`}
+            key={message.id}
+            style={{
+              '--barrage-delay': `${(index * 1.35) % 5.4}s`,
+              '--barrage-duration': `${7.4 + (index % 4) * 0.7}s`,
+            } as CSSProperties}
+          >
+            {message.text}
+          </span>
+        ))}
       </div>
       <div className="liveJoinTicker" aria-hidden="true">
         {joiners.map((viewer, index) => (
@@ -564,131 +581,79 @@ function ComposerIcon({ name }: { name: 'product' | 'gift' | 'more' | 'heart' })
   return <img className="composerImageIcon composerHeartIcon" src="/douyin-assets/gifts/xiao-xin-xin.png" alt="" aria-hidden="true" loading="lazy" />;
 }
 
-function LiveComposer({
+export function LiveComposer({
   controller,
-  onOpenComments,
+  expanded,
+  onExpandedChange,
   onOpenAuction,
   onOpenGift,
   onOpenMore,
 }: {
   controller: LiveRoomController;
-  onOpenComments: () => void;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
   onOpenAuction: () => void;
   onOpenGift: () => void;
   onOpenMore: () => void;
 }) {
+  const [content, setContent] = useState('');
   const sendFacadeNotice = (message: string) => controller.actions.showNotice(message);
-
-  return (
-    <footer className="liveComposer" aria-label="直播互动输入">
-      <button type="button" className="commentInput" onClick={onOpenComments}>说点什么...</button>
-      <button type="button" className="composerIconButton" aria-label="商品橱窗" onClick={onOpenAuction}>
-        <ComposerIcon name="product" />
-      </button>
-      <button type="button" className="composerIconButton" aria-label="点赞直播" onClick={() => sendFacadeNotice('已为直播间增加热度')}>
-        <ComposerIcon name="heart" />
-      </button>
-      <button type="button" className="composerIconButton" aria-label="礼物" onClick={onOpenGift}>
-        <ComposerIcon name="gift" />
-      </button>
-      <button type="button" className="composerIconButton" aria-label="更多操作" onClick={onOpenMore}>
-        <ComposerIcon name="more" />
-      </button>
-    </footer>
-  );
-}
-
-function commentsForRoom(controller: LiveRoomController) {
-  const bidComments = controller.room.recentBids.slice(0, 8).map((bid, index) => ({
-    id: bid.id || `${bid.userId}-${index}`,
-    avatar: (bid.nickname || bid.userId || '拍').slice(0, 1),
-    name: bid.nickname || `拍友${bid.userId.slice(-4)}`,
-    text: bid.accepted === false
-      ? businessErrorMessage(bid.rejectReason, { lot: controller.currentLot || undefined }) || '刚刚互动未成功，准备再试一次'
-      : `关注了这件商品，挺有意思`,
-    meta: index < 2 ? '刚刚' : `${index + 1}分钟前`,
-    count: Math.max(3, 168 - index * 17),
-  }));
-
-  if (bidComments.length) return bidComments;
-
-  return [
-    {
-      id: 'anchor-welcome',
-      avatar: controller.anchorName.slice(0, 1),
-      name: controller.anchorName,
-      text: controller.currentLot ? `正在看 ${controller.currentLot.title}，喜欢可以点右侧商品` : '欢迎来到直播间，商品上架后会在底部出现',
-      meta: '置顶',
-      count: 256,
-    },
-    { id: 'buyer-1', avatar: '拍', name: '拍友7281', text: '这场节奏可以，等开拍', meta: '1分钟前', count: 88 },
-    { id: 'buyer-2', avatar: '藏', name: '收藏新手', text: '能看到商品细节图吗', meta: '2分钟前', count: 42 },
-  ];
-}
-
-function DouyinCommentsSheet({ controller, onClose }: { controller: LiveRoomController; onClose: () => void }) {
-  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
-  const comments = commentsForRoom(controller);
-  const totalCount = comments.length + Math.max(controller.room.recentBids.length, 128);
-  const toggleLike = (id: string) => {
-    setLikedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+  const sendBarrage = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const normalizedContent = content.trim();
+    if (!normalizedContent || controller.barrageSending) return;
+    if (!controller.meId) {
+      controller.actions.requireBuyerAuth();
+      controller.actions.showNotice('请先登录后发送弹幕');
+      onExpandedChange(false);
+      return;
+    }
+    if (await controller.actions.submitBarrage(normalizedContent)) {
+      setContent('');
+      onExpandedChange(false);
+    }
   };
 
   return (
-    <div className="dyCommentOverlay" onClick={onClose}>
-      <section className="dyCommentSheet" role="dialog" aria-modal="true" aria-label="直播评论" onClick={(e) => e.stopPropagation()}>
-        <header className="dyCommentHeader">
-          <div className="dyCommentHeaderLeft">
-            <button type="button" className="dyCommentCloseBtn" onClick={onClose} aria-label="关闭评论">‹</button>
-            <span className="dyCommentTitle">{shortCount(totalCount)}条评论</span>
-          </div>
-          <div className="dyCommentHeaderRight">
-            <button type="button" aria-label="全屏">⤢</button>
-            <button type="button" onClick={onClose} aria-label="关闭">✕</button>
-          </div>
-        </header>
-
-        <div className="dyCommentList">
-          {comments.map((comment) => (
-            <div className="dyCommentItem" key={comment.id}>
-              <div className="dyCommentAvatar">
-                <span className="dyCommentAvatarPlaceholder">{comment.avatar}</span>
-              </div>
-              <div className="dyCommentBody">
-                <div className="dyCommentName">{comment.name}</div>
-                <p className="dyCommentText">{comment.text}</p>
-                <div className="dyCommentMeta">
-                  <span className="dyCommentTime">{comment.meta}</span>
-                  <button type="button" className="dyCommentReply">回复</button>
-                </div>
-              </div>
-              <div className="dyCommentActions">
-                <button
-                  type="button"
-                  className={`dyCommentLike${likedIds.has(comment.id) ? ' active' : ''}`}
-                  onClick={() => toggleLike(comment.id)}
-                  aria-label="点赞评论"
-                >
-                  <svg viewBox="0 0 48 48"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M15 8C8.925 8 4 12.925 4 19c0 11 13 21 20 23.326C31 40 44 30 44 19c0-6.075-4.925-11-11-11c-3.72 0-7.01 1.847-9 4.674A10.99 10.99 0 0 0 15 8" /></svg>
-                  <span>{shortCount(comment.count + (likedIds.has(comment.id) ? 1 : 0))}</span>
-                </button>
-              </div>
-            </div>
-          ))}
-          <div className="dyCommentNoMore">暂时没有更多了</div>
-        </div>
-
-        <div className="dyCommentToolbar">
-          <input className="dyCommentInput" placeholder="善语结善缘，恶言伤人心" readOnly />
-          <button type="button" className="dyCommentToolBtn" aria-label="表情">😊</button>
-          <button type="button" className="dyCommentToolBtn" aria-label="@提及">@</button>
-        </div>
-      </section>
-    </div>
+    <footer className={`liveComposer${expanded ? ' barrageEditing' : ''}`} aria-label="直播互动输入">
+      {expanded ? (
+        <form className="liveBarrageComposer" aria-label="发送弹幕" onSubmit={sendBarrage}>
+          <input
+            className="liveBarrageInput"
+            aria-label="输入弹幕"
+            placeholder="发条友善的弹幕吧"
+            value={content}
+            onChange={(event) => setContent(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') onExpandedChange(false);
+            }}
+            maxLength={100}
+            autoFocus
+            disabled={controller.barrageSending}
+          />
+          <button type="button" className="liveBarrageCancel" aria-label="取消发送弹幕" onClick={() => onExpandedChange(false)}>×</button>
+          <button type="submit" className="liveBarrageSend" disabled={controller.barrageSending || !content.trim()}>
+            {controller.barrageSending ? '发送中' : '发送'}
+          </button>
+        </form>
+      ) : (
+        <>
+          <button type="button" className="commentInput" aria-label="打开弹幕输入" onClick={() => onExpandedChange(true)}>说点什么...</button>
+          <button type="button" className="composerIconButton" aria-label="商品橱窗" onClick={onOpenAuction}>
+            <ComposerIcon name="product" />
+          </button>
+          <button type="button" className="composerIconButton" aria-label="点赞直播" onClick={() => sendFacadeNotice('已为直播间增加热度')}>
+            <ComposerIcon name="heart" />
+          </button>
+          <button type="button" className="composerIconButton" aria-label="礼物" onClick={onOpenGift}>
+            <ComposerIcon name="gift" />
+          </button>
+          <button type="button" className="composerIconButton" aria-label="更多操作" onClick={onOpenMore}>
+            <ComposerIcon name="more" />
+          </button>
+        </>
+      )}
+    </footer>
   );
 }
 
@@ -880,7 +845,8 @@ export function LiveRoomView({
   onSwipeRoom,
   onCloseRoom,
 }: LiveRoomViewProps) {
-  const [activeSheet, setActiveSheet] = useState<'comments' | 'share' | 'gift' | 'more' | null>(null);
+  const [activeSheet, setActiveSheet] = useState<'share' | 'gift' | 'more' | null>(null);
+  const [barrageComposerOpen, setBarrageComposerOpen] = useState(false);
   const [clearScreen, setClearScreen] = useState(false);
   const [giftBurst, setGiftBurst] = useState<GiftBurst | null>(null);
   const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(false);
@@ -934,7 +900,7 @@ export function LiveRoomView({
   const detailLotCandidates = [currentLot, ...auctionPanel.lots].filter((lot): lot is Lot => Boolean(lot));
   const detailLot = detailLotId ? detailLotCandidates.find((lot) => lot.id === detailLotId) || null : null;
   const detailVisible = Boolean(detailLot);
-  const roomSwipeLocked = Boolean(activeSheet || auctionPanel.open || resultLot || payOrder || depositPrompt || detailVisible);
+  const roomSwipeLocked = Boolean(barrageComposerOpen || activeSheet || auctionPanel.open || resultLot || payOrder || depositPrompt || detailVisible);
 
   useEffect(() => {
     const roomLiveSource = room.snapshot?.liveSourceUrl?.trim();
@@ -944,6 +910,7 @@ export function LiveRoomView({
   useEffect(() => {
     if (!resultLot) return;
     setActiveSheet(null);
+    setBarrageComposerOpen(false);
     setClearScreen(false);
     setDetailLotId(null);
   }, [resultLot]);
@@ -951,6 +918,7 @@ export function LiveRoomView({
   useEffect(() => {
     if (!depositPrompt) return;
     setActiveSheet(null);
+    setBarrageComposerOpen(false);
     setClearScreen(false);
     actions.closeAuctionPanel();
     if (controller.bidAuthPanelOpen) actions.closeBuyerAuthPanel();
@@ -962,6 +930,7 @@ export function LiveRoomView({
     roomSwipeSettleDirection.current = 0;
     roomSwipeStart.current = null;
     setDetailLotId(null);
+    setBarrageComposerOpen(false);
     setRoomSwipeOffset(0);
     setRoomSwipePhase('idle');
   }, [controller.roomId]);
@@ -1147,12 +1116,12 @@ export function LiveRoomView({
           <AuctionNoticeLayer notices={notices} />
           <LiveComposer
             controller={controller}
-            onOpenComments={() => setActiveSheet('comments')}
+            expanded={barrageComposerOpen}
+            onExpandedChange={setBarrageComposerOpen}
             onOpenAuction={openCurrentAuction}
             onOpenGift={() => setActiveSheet('gift')}
             onOpenMore={() => setActiveSheet('more')}
           />
-          {activeSheet === 'comments' ? <DouyinCommentsSheet controller={controller} onClose={closeActiveSheet} /> : null}
           {activeSheet === 'share' ? <DouyinShareSheet controller={controller} onClose={closeActiveSheet} /> : null}
           {activeSheet === 'gift' ? <DouyinGiftSheet controller={controller} onClose={closeActiveSheet} onSendGift={sendGift} /> : null}
           {activeSheet === 'more' ? (

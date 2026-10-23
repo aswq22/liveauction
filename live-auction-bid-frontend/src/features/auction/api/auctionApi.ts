@@ -3,7 +3,7 @@ import { toQueryString } from '../../../shared/api/query';
 import { assertOkResult, normalizeAuctionEvent, publicResultMessage } from '../../../shared/api/result';
 import { normalizeLot, normalizeRoom, normalizeRoomPresence, normalizeRoomSnapshot, normalizeTrustRevealCard, normalizeUploadedAsset } from '../../../shared/api/normalizers';
 import { clientLog, createRequestId } from '../../../shared/lib/clientLogger';
-import type { AuctionEvent, CancelLotReply, CreateLotReply, CreateLotRequest, GetRoomPresenceReply, GetRoomSnapshotReply, ListLotsReply, ListRoomEventsReply, ListRoomsReply, Lot, LotStatus, PatchLotDraftRequest, PatchLotDraftReply, QueueLotReply, ReplyResult, RevealTrustCardReply, Room, RoomPresence, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
+import type { AuctionEvent, CancelLotReply, CreateLotReply, CreateLotRequest, GetLotReply, GetRoomPresenceReply, GetRoomSnapshotReply, ListLotsReply, ListRoomEventsReply, ListRoomsReply, Lot, LotStatus, PatchLotDraftRequest, PatchLotDraftReply, QueueLotReply, ReplyResult, RevealTrustCardReply, Room, RoomPresence, RoomSnapshot, SettleLotReply, StartDuelReply, StartLotReply, TrustRevealCard, UploadedAsset, UploadImageReply } from '../../../shared/api/types';
 
 export type AdminLotsQuery = {
   page?: number;
@@ -236,6 +236,15 @@ export async function queueLot(lotId: string) {
   const raw = reply as QueueLotReply & { queue_position?: number };
   const lot = normalizeLot(reply.lot);
   return { lot, queuePosition: raw.queuePosition ?? raw.queue_position ?? lot.queuePosition } as { lot: Lot; queuePosition?: number };
+}
+
+export async function dequeueLot(lotId: string) {
+  return requireLot(assertOkResult(await apiRequest<GetLotReply>({
+    path: '/api/admin/lots/dequeue',
+    method: 'POST',
+    body: { lotId },
+    operation: 'dequeue-lot',
+  })));
 }
 
 export async function relistLot(lotId: string) {

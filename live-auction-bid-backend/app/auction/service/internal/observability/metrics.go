@@ -1,7 +1,9 @@
 package observability
 
 import (
+	"context"
 	"database/sql"
+	"runtime/trace"
 	"strconv"
 	"strings"
 	"sync"
@@ -11,6 +13,34 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
+
+type AgentApprovalObserver struct{}
+
+func (AgentApprovalObserver) BeginApplyTransaction(ctx context.Context) (context.Context, func(string)) {
+	started := time.Now()
+	region := trace.StartRegion(ctx, "proposal.apply.transaction")
+	trace.Log(ctx, "component", "agent_approval")
+	return ctx, func(result string) {
+		trace.Log(ctx, "result", result)
+		region.End()
+		proposalApplyLatencyMs.Observe(float64(time.Since(started).Milliseconds()))
+	}
+}
+func (AgentApprovalObserver) RecordApplyOutcome(result string) { RecordProposalApplyOutcome(result) }
+
+type AgentApprovalOutboxObserver struct{}
+
+func (AgentApprovalOutboxObserver) BeginOutboxPublish(ctx context.Context, traceID string) (context.Context, func(string)) {
+	region := trace.StartRegion(ctx, "outbox.publish")
+	trace.Log(ctx, "component", "agent_approval_outbox")
+	if traceID != "" {
+		trace.Log(ctx, "linked_trace_id", traceID)
+	}
+	return ctx, func(result string) { trace.Log(ctx, "result", result); region.End() }
+}
+func (AgentApprovalOutboxObserver) RecordOutboxVisibleLatency(d time.Duration) {
+	RecordProposalOutboxVisibleLatency(d)
+}
 
 var (
 	projectionPendingCount atomic.Int64
@@ -45,8 +75,8 @@ var (
 	}, []string{"reason"})
 	wsConnections = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "auction_ws_connections",
-		Help: "Current websocket connections by room and scope.",
-	}, []string{"room_id", "scope"})
+		Help: "Current websocket connections by stable scope.",
+	}, []string{"scope"})
 	wsEventsSent = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "auction_ws_events_sent_total",
 		Help: "Total websocket auction events sent by type.",
@@ -96,6 +126,20 @@ var (
 		Name: "auction_gateway_room_assignments",
 		Help: "Current number of room assignments known by the shard gateway per shard.",
 	}, []string{"shard"})
+	proposalApply = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "auction_agent_proposal_apply_total",
+		Help: "Agent proposal apply attempts by stable result.",
+	}, []string{"result"})
+	proposalApplyLatencyMs = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "auction_agent_proposal_apply_latency_ms",
+		Help:    "Agent proposal apply transaction latency in milliseconds.",
+		Buckets: []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
+	})
+	proposalOutboxVisibleLatencyMs = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "auction_agent_proposal_outbox_visible_latency_ms",
+		Help:    "Latency from proposal confirmation to durable outbox visibility in milliseconds.",
+		Buckets: []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000},
+	})
 )
 
 type RedisPoolStats struct {
@@ -225,12 +269,23 @@ func RecordBid(result, reason string, duration time.Duration) {
 	}
 }
 
-func IncWSConnection(roomID, scope string) {
-	wsConnections.WithLabelValues(cleanLabel(roomID, "unknown"), cleanLabel(scope, "unknown")).Inc()
+func IncWSConnection(scope string) {
+	wsConnections.WithLabelValues(normalizeWSConnectionScope(scope)).Inc()
 }
 
-func DecWSConnection(roomID, scope string) {
-	wsConnections.WithLabelValues(cleanLabel(roomID, "unknown"), cleanLabel(scope, "unknown")).Dec()
+func DecWSConnection(scope string) {
+	wsConnections.WithLabelValues(normalizeWSConnectionScope(scope)).Dec()
+}
+
+func normalizeWSConnectionScope(scope string) string {
+	switch strings.ToLower(strings.TrimSpace(scope)) {
+	case "public":
+		return "public"
+	case "admin":
+		return "admin"
+	default:
+		return "other"
+	}
 }
 
 func RecordWSEventSent(eventType string) {
@@ -328,6 +383,22 @@ func SetWorkerLeaseActive(worker string, active bool) {
 
 func IncOrderCreated() {
 	orderCreated.Inc()
+}
+
+func RecordProposalApplyOutcome(result string) {
+	switch result {
+	case "success", "rollback", "idempotent_hit", "snapshot_conflict":
+	default:
+		result = "rollback"
+	}
+	proposalApply.WithLabelValues(result).Inc()
+}
+
+func RecordProposalOutboxVisibleLatency(duration time.Duration) {
+	if duration < 0 {
+		duration = 0
+	}
+	proposalOutboxVisibleLatencyMs.Observe(float64(duration.Milliseconds()))
 }
 
 func cleanLabel(value, fallback string) string {

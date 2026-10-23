@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -13,6 +14,35 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 )
+
+// Global queue-writer lock contract: lock auction_room_states first, then lot
+// rows in lexical ID order. QueueLotAsNext, RelistLotAsNext, StartLot, terminal
+// Save and Agent Apply all follow this order. A writer that only knows a lot ID
+// performs a non-locking discovery read and revalidates room/tenant after the
+// ordered locks are held.
+func lockAuctionRoomState(ctx context.Context, tx *gorm.DB, roomID string) (AuctionRoomStateModel, error) {
+	var state AuctionRoomStateModel
+	err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where("room_id = ?", roomID).First(&state).Error
+	return state, err
+}
+
+// allocateQueuePositions validates in int64 before converting to MySQL INT /
+// protobuf int32. The returned next counter must itself remain representable.
+func allocateQueuePositions(next int32, count int) ([]int32, int32, error) {
+	if next <= 0 || count <= 0 {
+		return nil, 0, apperr.ErrQueuePositionConflict
+	}
+	next64 := int64(next)
+	after := next64 + int64(count)
+	if after > math.MaxInt32 {
+		return nil, 0, apperr.ErrQueuePositionConflict
+	}
+	positions := make([]int32, count)
+	for i := range positions {
+		positions[i] = int32(next64 + int64(i))
+	}
+	return positions, int32(after), nil
+}
 
 func (s *Store) QueueLotAsNext(ctx context.Context, lotID, mainAccountID, ownerUserID string, nowMs int64) (*v1.Lot, int32, []v1.AuctionEvent, error) {
 	lotID = strings.TrimSpace(lotID)
@@ -31,31 +61,44 @@ func (s *Store) QueueLotAsNext(ctx context.Context, lotID, mainAccountID, ownerU
 	var queuePosition int32
 	var events []v1.AuctionEvent
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var current AuctionLotModel
-		if err := tx.WithContext(ctx).
-			Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ?", lotID).
-			First(&current).Error; err != nil {
+		// Queue writers always lock room_state before lot rows. A non-locking
+		// pre-read discovers the room; the locked read below revalidates it.
+		var discovered AuctionLotModel
+		if err := tx.WithContext(ctx).Where("id = ?", lotID).First(&discovered).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return apperr.ErrNotFound
 			}
 			return err
 		}
+		if discovered.MainAccountID != mainAccountID {
+			return apperr.ErrPermissionDenied
+		}
+		if discovered.RoomID == "" {
+			return errors.New("room id is required")
+		}
+		if err := ensureRoomStateRecord(ctx, tx, discovered.RoomID, discovered.MainAccountID, nowMs); err != nil {
+			return err
+		}
+		if s.beforeQueueRoomStateLock != nil {
+			s.beforeQueueRoomStateLock(tx)
+		}
+		state, err := lockAuctionRoomState(ctx, tx, discovered.RoomID)
+		if err != nil {
+			return err
+		}
+		locked, err := lockAuctionLotsSorted(ctx, tx, []string{lotID})
+		if err != nil {
+			return err
+		}
+		if len(locked) != 1 {
+			return apperr.ErrNotFound
+		}
+		current := locked[0]
 		if current.MainAccountID != mainAccountID {
 			return apperr.ErrPermissionDenied
 		}
-		if current.RoomID == "" {
-			return errors.New("room id is required")
-		}
-		if err := ensureRoomStateRecord(ctx, tx, current.RoomID, current.MainAccountID, nowMs); err != nil {
-			return err
-		}
-		var state AuctionRoomStateModel
-		if err := tx.WithContext(ctx).
-			Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("room_id = ?", current.RoomID).
-			First(&state).Error; err != nil {
-			return err
+		if current.RoomID != discovered.RoomID {
+			return fmtInvalidRoomState()
 		}
 
 		lot, err := modelToLot(&current)
@@ -69,10 +112,11 @@ func (s *Store) QueueLotAsNext(ctx context.Context, lotID, mainAccountID, ownerU
 			return nil
 		}
 		if queuePosition <= 0 {
-			queuePosition = state.NextQueuePosition
-			if queuePosition <= 0 {
-				queuePosition = 1
+			positions, _, allocationErr := allocateQueuePositions(state.NextQueuePosition, 1)
+			if allocationErr != nil {
+				return allocationErr
 			}
+			queuePosition = positions[0]
 		}
 		if err := auction.QueueLot(lot, queuePosition); err != nil {
 			return err
@@ -94,7 +138,11 @@ func (s *Store) QueueLotAsNext(ctx context.Context, lotID, mainAccountID, ownerU
 			return apperr.ErrLotVersionConflict
 		}
 		if state.NextQueuePosition <= queuePosition {
-			state.NextQueuePosition = queuePosition + 1
+			_, next, allocationErr := allocateQueuePositions(queuePosition, 1)
+			if allocationErr != nil {
+				return allocationErr
+			}
+			state.NextQueuePosition = next
 		}
 		if err := tx.WithContext(ctx).
 			Model(&AuctionRoomStateModel{}).
@@ -126,6 +174,100 @@ func (s *Store) QueueLotAsNext(ctx context.Context, lotID, mainAccountID, ownerU
 	return queuedLot, queuePosition, events, nil
 }
 
+func (s *Store) DequeueLot(ctx context.Context, lotID, mainAccountID string, nowMs int64) (*v1.Lot, []v1.AuctionEvent, error) {
+	lotID = strings.TrimSpace(lotID)
+	mainAccountID = strings.TrimSpace(mainAccountID)
+	if lotID == "" {
+		return nil, nil, errors.New("lot id is required")
+	}
+	if mainAccountID == "" {
+		return nil, nil, fmt.Errorf("%w: main account id is required", apperr.ErrPermissionDenied)
+	}
+	if nowMs <= 0 {
+		nowMs = time.Now().UnixMilli()
+	}
+
+	var dequeued *v1.Lot
+	var events []v1.AuctionEvent
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var discovered AuctionLotModel
+		if err := tx.WithContext(ctx).Where("id = ?", lotID).First(&discovered).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperr.ErrNotFound
+			}
+			return err
+		}
+		if discovered.MainAccountID != mainAccountID {
+			return apperr.ErrPermissionDenied
+		}
+		if discovered.RoomID == "" {
+			return errors.New("room id is required")
+		}
+		if err := ensureRoomStateRecord(ctx, tx, discovered.RoomID, discovered.MainAccountID, nowMs); err != nil {
+			return err
+		}
+		if _, err := lockAuctionRoomState(ctx, tx, discovered.RoomID); err != nil {
+			return err
+		}
+		locked, err := lockAuctionLotsSorted(ctx, tx, []string{lotID})
+		if err != nil {
+			return err
+		}
+		if len(locked) != 1 {
+			return apperr.ErrNotFound
+		}
+		current := locked[0]
+		if current.MainAccountID != mainAccountID {
+			return apperr.ErrPermissionDenied
+		}
+		if current.RoomID != discovered.RoomID {
+			return fmtInvalidRoomState()
+		}
+		lot, err := modelToLot(&current)
+		if err != nil {
+			return err
+		}
+		previousVersion := lot.GetVersion()
+		if err := auction.DequeueLot(lot); err != nil {
+			return err
+		}
+		if lot.GetVersion() == previousVersion {
+			dequeued = lot
+			return nil
+		}
+		lot.UpdatedAtUnixMs = nowMs
+		model, err := lotToModel(lot)
+		if err != nil {
+			return err
+		}
+		result := tx.WithContext(ctx).
+			Model(&AuctionLotModel{}).
+			Where("id = ? AND version = ?", lot.GetId(), current.Version).
+			Select("*").
+			Omit("created_at").
+			Updates(model)
+		if result.Error != nil {
+			return mapQueuePositionConflict(result.Error)
+		}
+		if result.RowsAffected == 0 {
+			return apperr.ErrLotVersionConflict
+		}
+		event := auction.NewAuctionEvent(v1.AuctionEventType_AUCTION_EVENT_TYPE_LOT_UPDATED, lot)
+		events = []v1.AuctionEvent{event}
+		if err := createEventModels(ctx, tx, events); err != nil {
+			return err
+		}
+		dequeued = lot
+		return nil
+	}); err != nil {
+		return nil, nil, err
+	}
+	if err := s.streamEvents(ctx, events); err != nil {
+		return nil, nil, err
+	}
+	return dequeued, events, nil
+}
+
 func (s *Store) RelistLotAsNext(ctx context.Context, sourceLotID, newLotID, mainAccountID, ownerUserID string, nowMs int64) (*v1.Lot, int32, []v1.AuctionEvent, error) {
 	sourceLotID = strings.TrimSpace(sourceLotID)
 	newLotID = strings.TrimSpace(newLotID)
@@ -144,18 +286,42 @@ func (s *Store) RelistLotAsNext(ctx context.Context, sourceLotID, newLotID, main
 	var queuePosition int32
 	var events []v1.AuctionEvent
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var sourceModel AuctionLotModel
-		if err := tx.WithContext(ctx).
-			Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ?", sourceLotID).
-			First(&sourceModel).Error; err != nil {
+		var discovered AuctionLotModel
+		if err := tx.WithContext(ctx).Where("id = ?", sourceLotID).First(&discovered).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return apperr.ErrNotFound
 			}
 			return err
 		}
+		if discovered.MainAccountID != mainAccountID {
+			return apperr.ErrPermissionDenied
+		}
+		if discovered.RoomID == "" {
+			return errors.New("room id is required")
+		}
+		if err := ensureRoomStateRecord(ctx, tx, discovered.RoomID, discovered.MainAccountID, nowMs); err != nil {
+			return err
+		}
+		if s.beforeQueueRoomStateLock != nil {
+			s.beforeQueueRoomStateLock(tx)
+		}
+		state, err := lockAuctionRoomState(ctx, tx, discovered.RoomID)
+		if err != nil {
+			return err
+		}
+		locked, err := lockAuctionLotsSorted(ctx, tx, []string{sourceLotID})
+		if err != nil {
+			return err
+		}
+		if len(locked) != 1 {
+			return apperr.ErrNotFound
+		}
+		sourceModel := locked[0]
 		if sourceModel.MainAccountID != mainAccountID {
 			return apperr.ErrPermissionDenied
+		}
+		if sourceModel.RoomID != discovered.RoomID {
+			return fmtInvalidRoomState()
 		}
 		sourceLot, err := modelToLot(&sourceModel)
 		if err != nil {
@@ -172,20 +338,11 @@ func (s *Store) RelistLotAsNext(ctx context.Context, sourceLotID, newLotID, main
 		if existingRelistCount > 0 || lotRelistMarker(sourceModel.CancelReason) != "" {
 			return fmt.Errorf("%w: lot has already been relisted", apperr.ErrInvalidArgument)
 		}
-		if err := ensureRoomStateRecord(ctx, tx, sourceLot.GetRoomId(), sourceLot.GetMainAccountId(), nowMs); err != nil {
+		positions, nextQueuePosition, err := allocateQueuePositions(state.NextQueuePosition, 1)
+		if err != nil {
 			return err
 		}
-		var state AuctionRoomStateModel
-		if err := tx.WithContext(ctx).
-			Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("room_id = ?", sourceLot.GetRoomId()).
-			First(&state).Error; err != nil {
-			return err
-		}
-		queuePosition = state.NextQueuePosition
-		if queuePosition <= 0 {
-			queuePosition = 1
-		}
+		queuePosition = positions[0]
 		lot, err := auction.NewRelistLotFromFailed(newLotID, sourceLot)
 		if err != nil {
 			return err
@@ -210,7 +367,7 @@ func (s *Store) RelistLotAsNext(ctx context.Context, sourceLotID, newLotID, main
 		}).Error; err != nil {
 			return err
 		}
-		state.NextQueuePosition = queuePosition + 1
+		state.NextQueuePosition = nextQueuePosition
 		if err := tx.WithContext(ctx).
 			Model(&AuctionRoomStateModel{}).
 			Where("room_id = ?", lot.GetRoomId()).
@@ -325,7 +482,7 @@ func (s *Store) StartLotAsOnlyActive(ctx context.Context, lot *v1.Lot, expectedV
 		if current.Version != expectedVersion {
 			return apperr.ErrLotVersionConflict
 		}
-		if current.Status != int32(v1.LotStatus_LOT_STATUS_DRAFT) && current.Status != int32(v1.LotStatus_LOT_STATUS_QUEUED) {
+		if current.Status != int32(v1.LotStatus_LOT_STATUS_DRAFT) && current.Status != int32(v1.LotStatus_LOT_STATUS_READY) && current.Status != int32(v1.LotStatus_LOT_STATUS_QUEUED) {
 			return fmtInvalidLotStartStatus(v1.LotStatus(current.Status))
 		}
 

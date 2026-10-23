@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	bs "live-auction-bid/backend/app/auction/service/internal/biz/buyersearch"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,14 +17,25 @@ import (
 
 const defaultDashScopeBaseURL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
+// ProviderError contains no provider response body or credentials.
+type ProviderError struct {
+	Status     int
+	RetryAfter time.Duration
+}
+
+func (e *ProviderError) Error() string {
+	return fmt.Sprintf("embedding provider http status %d", e.Status)
+}
+
 type EmbeddingConfig struct {
-	Provider   string
-	BaseURL    string
-	Model      string
-	APIKey     string
-	Dimensions int
-	Timeout    time.Duration
-	BatchSize  int
+	Provider        string
+	ProviderVersion string
+	BaseURL         string
+	Model           string
+	APIKey          string
+	Dimensions      int
+	Timeout         time.Duration
+	BatchSize       int
 }
 
 type EmbeddingClient struct {
@@ -62,14 +75,27 @@ func NewEmbeddingClientFromEnv(getenv func(string) string) *EmbeddingClient {
 		}
 	}
 	return NewEmbeddingClient(EmbeddingConfig{
-		Provider:   getenv("AUCTION_EMBEDDING_PROVIDER"),
-		BaseURL:    getenv("AUCTION_EMBEDDING_BASE_URL"),
-		Model:      getenv("AUCTION_EMBEDDING_MODEL"),
-		APIKey:     getenv("AUCTION_EMBEDDING_API_KEY"),
-		Dimensions: parsePositiveInt(getenv("AUCTION_EMBEDDING_DIMENSIONS"), DefaultEmbeddingDimensions),
-		Timeout:    timeout,
-		BatchSize:  parsePositiveInt(getenv("AUCTION_EMBEDDING_BATCH_SIZE"), DefaultEmbeddingBatchSize),
+		Provider:        getenv("AUCTION_EMBEDDING_PROVIDER"),
+		ProviderVersion: getenv("AUCTION_EMBEDDING_PROVIDER_VERSION"),
+		BaseURL:         getenv("AUCTION_EMBEDDING_BASE_URL"),
+		Model:           getenv("AUCTION_EMBEDDING_MODEL"),
+		APIKey:          getenv("AUCTION_EMBEDDING_API_KEY"),
+		Dimensions:      parsePositiveInt(getenv("AUCTION_EMBEDDING_DIMENSIONS"), DefaultEmbeddingDimensions),
+		Timeout:         timeout,
+		BatchSize:       parsePositiveInt(getenv("AUCTION_EMBEDDING_BATCH_SIZE"), DefaultEmbeddingBatchSize),
 	})
+}
+func (c *EmbeddingClient) ForGeneration(g bs.Generation) (bs.Embedder, error) {
+	if c.cfg.ProviderVersion == "" || g.ProviderVersion != c.cfg.ProviderVersion {
+		return nil, errors.New("embedding deployment version mismatch")
+	}
+	if g.Dimensions < 1 || g.Dimensions > 2000 || strings.TrimSpace(g.Model) == "" {
+		return nil, errors.New("invalid embedding generation")
+	}
+	cfg := c.cfg
+	cfg.Model = g.Model
+	cfg.Dimensions = g.Dimensions
+	return NewEmbeddingClient(cfg), nil
 }
 
 func (c *EmbeddingClient) Configured() bool {
@@ -143,7 +169,19 @@ func (c *EmbeddingClient) Embed(ctx context.Context, texts []string) ([][]float6
 		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("embedding provider http status %d", resp.StatusCode)
+		delay := time.Duration(0)
+		if n, err := strconv.Atoi(resp.Header.Get("Retry-After")); err == nil && n >= 0 && n <= 86400 {
+			delay = time.Duration(n) * time.Second
+		} else if at, err := http.ParseTime(resp.Header.Get("Retry-After")); err == nil {
+			delay = time.Until(at)
+			if delay < 0 {
+				delay = 0
+			}
+			if delay > 24*time.Hour {
+				delay = 24 * time.Hour
+			}
+		}
+		return nil, &ProviderError{Status: resp.StatusCode, RetryAfter: delay}
 	}
 	var envelope struct {
 		Data []struct {
@@ -164,6 +202,19 @@ func (c *EmbeddingClient) Embed(ctx context.Context, texts []string) ([][]float6
 		}
 		if len(item.Embedding) != c.cfg.Dimensions {
 			return nil, fmt.Errorf("embedding dimensions mismatch: got %d want %d", len(item.Embedding), c.cfg.Dimensions)
+		}
+		if out[item.Index] != nil {
+			return nil, errors.New("embedding provider returned duplicate index")
+		}
+		var norm float64
+		for _, v := range item.Embedding {
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				return nil, errors.New("embedding provider returned non-finite vector")
+			}
+			norm += v * v
+		}
+		if norm == 0 || math.IsInf(norm, 0) {
+			return nil, errors.New("embedding provider returned invalid vector norm")
 		}
 		out[item.Index] = item.Embedding
 	}

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronLeft, Clock3, Flame, RefreshCw, Search, Sparkles, Target, X } from 'lucide-react';
-import { consultBuyer, listBuyerSuggestions, listPublicRooms } from '../features/auction/api/auctionApi';
+import { listBuyerSuggestions, listPublicRooms } from '../features/auction/api/auctionApi';
+import { type BuyerSearchPage } from '../features/search/api/buyerSearchApi';
+import { loadSubmittedSearchPage, type SubmittedSearch } from '../features/search/model/searchPaging';
 import { clearSearchAIState, readSearchAIStateForRestore, saveSearchAIStateForRoomReturn } from '../features/search/model/searchAIState';
 import { formatMoney } from '../shared/lib/money';
 import type { AIBuyerConsultReply, AIBuyerResult } from '../shared/api/types';
@@ -219,7 +221,6 @@ function displayTags(item: AIBuyerResult) {
   const tags: string[] = [];
   const status = formatLotStatus(item.status);
   if (status && status !== '拍品') tags.push(status);
-  if (/手镯|吊坠|项链|首饰|翡翠|玛瑙|玉/.test(item.title)) tags.push('适合送礼');
   reasonTags(item.reason)
     .filter((tag) => !/标题命中|命中[:：]/.test(tag))
     .forEach((tag) => tags.push(tag));
@@ -275,6 +276,10 @@ function SearchPage() {
   const restoredScrollY = useRef(restoredAIState.scrollY);
   const restoredScrollDone = useRef(false);
   const searchRequestId = useRef(0);
+  const searchAbort = useRef<AbortController | null>(null);
+  const [searchPage, setSearchPage] = useState<BuyerSearchPage | null>(null);
+  const [roomScope, setRoomScope] = useState('');
+  const [submittedSearch, setSubmittedSearch] = useState<SubmittedSearch | null>(null);
   const [history, setHistory] = useState(readSearchHistory);
   const [expanded, setExpanded] = useState(false);
   const [guessRound, setGuessRound] = useState(0);
@@ -282,7 +287,7 @@ function SearchPage() {
   const [activeCategory, setActiveCategory] = useState(Object.keys(CATEGORY_RANKS)[0]);
   const [query, setQuery] = useState('');
   const [aiQuery, setAIQuery] = useState(restoredAIState.query);
-  const [aiReply, setAIReply] = useState<AIBuyerConsultReply | null>(restoredAIState.reply);
+  const [aiReply, setAIReply] = useState<AIBuyerConsultReply | null>(null);
   const [aiLoading, setAILoading] = useState(false);
   const [aiError, setAIError] = useState('');
   const [aiPrompts, setAIPrompts] = useState(() => nextPromptBatch(AI_PROMPTS));
@@ -290,6 +295,7 @@ function SearchPage() {
   const [aiOpen, setAIOpen] = useState(() => Boolean(restoredAIState.query || restoredAIState.reply));
   const [aiResultsExpanded, setAIResultsExpanded] = useState(false);
   const [roomNames, setRoomNames] = useState<Record<string, string>>({});
+  useEffect(() => () => { searchRequestId.current += 1; searchAbort.current?.abort(); }, []);
 
   const visibleHistory = expanded ? history : history.slice(0, 2);
   useEffect(() => {
@@ -367,36 +373,46 @@ function SearchPage() {
   const runPlainSearch = () => {
     const text = query.trim();
     if (!text) return;
-    updateHistory(text);
+    void runAIConsult(text);
   };
-  const runAIConsult = async (nextQuery = aiQuery) => {
-    const text = nextQuery.trim();
+  const runAIConsult = async (nextQuery = aiQuery, append = false) => {
+    const identity = append ? submittedSearch : { query: nextQuery.trim(), roomId: roomScope };
+    if (!identity) return;
+    const text = identity.query;
     if (!text) {
       setAIError('请输入想找的拍品、预算或用途');
       return;
     }
+    if ([...text].length > 256) { setAIError('搜索条件最多 256 个字符'); return; }
+    searchAbort.current?.abort();
+    const controller = new AbortController();
+    searchAbort.current = controller;
     const requestId = searchRequestId.current + 1;
     searchRequestId.current = requestId;
     setAIOpen(true);
     setAILoading(true);
     setAIError('');
-    setAIQuery(text);
-    setAIReply(null);
+    if (!append) { setAIQuery(text); setSubmittedSearch(identity); setAIReply(null); setSearchPage(null); }
     setAIResultsExpanded(false);
     try {
-      const reply = await consultBuyer({ query: text });
+      const loaded = await loadSubmittedSearchPage(identity, append ? searchPage?.nextCursor || '' : '', controller.signal);
+      const page = loaded.page;
       if (searchRequestId.current !== requestId) return;
-      setAIReply(reply);
+      const oldResults = loaded.append ? (aiReply?.results || []) : [];
+      const results = [...oldResults, ...page.results].filter((item, index, all) => all.findIndex((other) => other.lotId === item.lotId) === index);
+      setSearchPage(page);
+      setAIReply({ answer: '', intent: 'search', sources: [], results, fallbackUsed: page.mode === 'LEXICAL' });
       updateHistory(text);
     } catch (error) {
+      if (controller.signal.aborted) return;
       if (searchRequestId.current !== requestId) return;
       setAIError(error instanceof Error ? error.message : '找拍品服务暂时不可用');
     } finally {
       if (searchRequestId.current === requestId) setAILoading(false);
     }
   };
-  const persistBeforeEnter = () => saveSearchAIStateForRoomReturn(aiQuery, aiReply, window.scrollY);
-  const aiReplyHeadline = aiReply ? buyerReplyHeadline(aiQuery, aiReply) : null;
+  const persistBeforeEnter = () => saveSearchAIStateForRoomReturn(submittedSearch?.query || aiQuery, null, window.scrollY);
+  const aiReplyHeadline = aiReply ? buyerReplyHeadline(submittedSearch?.query || aiQuery, aiReply) : null;
   const visibleAIResults = aiReply
     ? (aiResultsExpanded ? aiReply.results : aiReply.results.slice(0, 1))
     : [];
@@ -450,6 +466,12 @@ function SearchPage() {
                   void runAIConsult();
                 }}
               >
+                <label>搜索范围
+                  <select aria-label="搜索直播间范围" value={roomScope} onChange={(event) => { searchAbort.current?.abort(); searchRequestId.current += 1; setAILoading(false); setRoomScope(event.target.value); setSubmittedSearch(null); setAIReply(null); setSearchPage(null); }}>
+                    <option value="">全平台公开拍品</option>
+                    {Object.entries(roomNames).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                  </select>
+                </label>
                 <div className="dySearchAIInputPill">
                   <input
                     value={aiQuery}
@@ -482,7 +504,9 @@ function SearchPage() {
                       {aiReplyHeadline.highlight ? <b>{aiReplyHeadline.highlight}</b> : null}
                     </p>
                   </div>
-                  {aiReply.fallbackUsed ? <small>已基于当前公开拍品为你推荐</small> : null}
+                  {searchPage?.mode === 'LEXICAL' ? <small role="status">语义检索暂不可用，当前为关键词搜索</small> : null}
+                  {searchPage?.warnings.map((warning) => <small key={warning}>{warning}</small>)}
+                  {searchPage?.applied.maxPriceAmount !== undefined ? <small>预算上限：¥{Number(searchPage.applied.maxPriceAmount) / 100}</small> : null}
                   {aiReply.results.length ? (
                     <>
                       <div className="dySearchAIResults">
@@ -505,6 +529,7 @@ function SearchPage() {
                         {aiResultsExpanded ? '收起' : '展开全部'}
                         <ChevronDown className="dySearchIcon" aria-hidden="true" strokeWidth={2.6} />
                       </button>
+                      {searchPage?.nextCursor ? <button type="button" onClick={() => void runAIConsult(aiQuery, true)} disabled={aiLoading}>加载更多（实时校验）</button> : null}
                     </>
                   ) : (
                     <div className="dySearchAIEmptyState">

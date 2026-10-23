@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isBiddableLotStatus, isPrivateRefreshEventType, isSettlementEventType, lotIdFromPublicEvent } from '../../../entities/auction/model/status';
 import { ownOrderForLot } from '../../../entities/order/model/privacy';
-import { createDepositHold, listPublicRooms, listRoomLots, placeBid } from '../../auction/api/auctionApi';
+import { createDepositHold, listPublicRooms, listRoomLots, placeBid, submitBarrage as submitBarrageRequest } from '../../auction/api/auctionApi';
 import { createIdempotencyKey } from '../../../shared/lib/idempotency';
 import { getServerNowMs } from '../../../shared/lib/time';
 import { normalizeMoney } from '../../../shared/api/adapters';
@@ -90,6 +90,7 @@ export function useLiveRoomController(roomId: string) {
   const [notices, setNotices] = useState<string[]>([]);
   const [bidError, setBidError] = useState('');
   const [bidding, setBidding] = useState(false);
+  const [barrageSending, setBarrageSending] = useState(false);
   const [authFormMode, setAuthFormMode] = useState<'login' | 'register' | 'reset'>('login');
   const [authUsername, setAuthUsername] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -363,6 +364,34 @@ export function useLiveRoomController(roomId: string) {
     openBuyerAuthPanel();
   }, [openBuyerAuthPanel]);
 
+  const submitBarrage = useCallback(async (content: string): Promise<boolean> => {
+    if (barrageSending) return false;
+    setBarrageSending(true);
+    try {
+      const reply = await submitBarrageRequest(roomId, content);
+      if (!reply.accepted) throw new Error('弹幕未被接收，请稍后重试');
+      pushNotice('弹幕已发送');
+      return true;
+    } catch (error) {
+      if (shouldOpenBuyerAuth(error)) {
+        requireBuyerAuth();
+        pushNotice('请先登录后发送弹幕');
+        return false;
+      }
+      let message = error instanceof Error ? error.message : '弹幕发送失败，请稍后重试';
+      if (error instanceof AppApiError) {
+        if (error.status === 429) message = '发送太快，请稍后再试';
+        else if (error.status === 403) message = '你暂时无法发送弹幕';
+        else if (error.status === 400) message = '弹幕内容未通过审核';
+        else if (error.status === 503) message = '弹幕通道繁忙，请稍后再试';
+      }
+      pushNotice(message);
+      return false;
+    } finally {
+      setBarrageSending(false);
+    }
+  }, [barrageSending, pushNotice, requireBuyerAuth, roomId]);
+
   const submitBid = useCallback(async (amount: number) => {
     if (isBidPending) return;
     if (!currentLot) {
@@ -528,6 +557,7 @@ export function useLiveRoomController(roomId: string) {
     notices,
     bidError,
     isBidPending,
+    barrageSending,
     accountRoleMessage,
     showBuyerAuth,
     bidAuthPanelOpen,
@@ -557,6 +587,7 @@ export function useLiveRoomController(roomId: string) {
     depositPrompt,
     actions: {
       submitBid,
+      submitBarrage,
       confirmDepositPayment,
       closeDepositPrompt: () => setDepositPrompt(null),
       closeResult,

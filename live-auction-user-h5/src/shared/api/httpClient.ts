@@ -16,6 +16,7 @@ export type ApiRequestOptions = {
   auth?: AuthMode;
   contentType?: 'json' | 'form-data' | 'none';
   keepalive?: boolean;
+  signal?: AbortSignal;
   idempotencyKey?: string;
   operation?: string;
   skipAuthRefresh?: boolean;
@@ -156,6 +157,7 @@ async function rawRequest(options: ApiRequestOptions, token: string | null, requ
     headers: headersForRequest(options, token, requestId),
     body: bodyForRequest(options.body, contentType),
     keepalive: options.keepalive,
+    signal: options.signal,
   });
 
   return parseResponse(response);
@@ -170,10 +172,12 @@ export async function apiRequest<T>(options: ApiRequestOptions): Promise<T> {
   try {
     parsed = await rawRequest(options, token, requestId);
   } catch (error) {
+    if (options.signal?.aborted || (error instanceof Error && error.name === 'AbortError')) throw error;
     if (shouldRetryWithDevFallback(options.path)) {
       try {
         parsed = await rawRequest(options, token, requestId, DEV_API_FALLBACK_BASE);
       } catch (fallbackError) {
+        if (options.signal?.aborted || (fallbackError instanceof Error && fallbackError.name === 'AbortError')) throw fallbackError;
         throw new AppApiError(networkErrorMessage(fallbackError), {
           kind: 'network',
           requestId,

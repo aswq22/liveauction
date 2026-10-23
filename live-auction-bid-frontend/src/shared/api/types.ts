@@ -1,5 +1,6 @@
 export type Money = { amount: number | string; currency: string };
 export type ReplyResult = { code: number; message: string; traceId?: string; trace_id?: string };
+export type AgentRunReply = { run?: unknown; result?: ReplyResult };
 
 export const RESULT_CODE_OK = 0;
 export const RESULT_CODE_INVALID_ARGUMENT = 400001;

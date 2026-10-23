@@ -3,6 +3,10 @@
 日期：2026-08-25
 状态：已完成方案讨论，等待用户审阅
 
+> 说明：审批后创建拍品与入队的实现边界，已由
+> `2026-08-28-agent-conversation-approval-design.md` 细化并取代。新设计要求
+> Python Agent 始终只读，所有原子写入由 Go 审批执行器完成。
+
 ## 1. 背景与目标
 
 现有项目已经包含 Go 竞拍后端、商家 React 控制台、买家 H5、MySQL、Redis、RabbitMQ、WebSocket、AI 买家咨询和可选 pgvector 搜索。本次改进不是增加一个聊天入口，而是增加一个可执行、可审批、可恢复、可审计和可评测的商家运营 Agent。

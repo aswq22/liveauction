@@ -2,6 +2,7 @@ import {
   AUCTION_EVENT_TYPE,
   type AuctionRoomState,
   type AuctionSocketEvent,
+  type BarrageMessage,
   type BidEvent,
   type Lot,
   type LotResult,
@@ -34,10 +35,23 @@ export function createInitialAuctionRoomState(roomId: string): AuctionRoomState 
     currentLot: null,
     ranking: [],
     recentBids: [],
+    barrages: [],
     serverTimeUnixMs: 0,
     orders: [],
     paidLotIds: {},
   };
+}
+
+function mergeBarrages(current: BarrageMessage[], incoming: BarrageMessage[]): BarrageMessage[] {
+  const merged: BarrageMessage[] = [];
+  const seen = new Set<string>();
+  for (const message of [...incoming, ...current]) {
+    if (!message.id || seen.has(message.id)) continue;
+    seen.add(message.id);
+    merged.push(message);
+    if (merged.length === 50) break;
+  }
+  return merged;
 }
 
 function mergeRecentBid(recentBids: BidEvent[], bid?: BidEvent): BidEvent[] {
@@ -110,6 +124,13 @@ function snapshotToState(
 }
 
 function applyPublicEvent(state: AuctionRoomState, event: AuctionSocketEvent): AuctionRoomState {
+  if (event.type === AUCTION_EVENT_TYPE.BARRAGE_BATCH) {
+    return {
+      ...state,
+      barrages: mergeBarrages(state.barrages, event.messages || []),
+    };
+  }
+
   const serverTime = eventServerTime(event);
   const base: AuctionRoomState = {
     ...state,

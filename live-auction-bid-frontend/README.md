@@ -2,6 +2,8 @@
 
 直播竞拍系统商家/主播/运营后台前端：React + TypeScript + Vite。
 
+商家 Agent 控制台在每次新 goal 提交前生成 UUID `Idempotency-Key`。只有 fetch 网络/读取中断或请求 abort 等响应未知结果，才为同一规范化 goal 的人工重试保留该 key；收到确定的 HTTP 响应（包括 429、任意 4xx/5xx）、goal 修改或创建成功后，下一次点击都会生成新 key。认证刷新自动重发时保持原 header。Agent SSE 使用 `after_seq`/`Last-Event-ID` 去重续传：401 只触发一次共享 token refresh，429、所有 500–599、网络和 reader 故障按受限抖动退避重试，并遵循限定范围的 `Retry-After`；服务端 `retriable:true` error frame 进入同一重试路径，永久错误立即显示。
+
 ## 当前项目边界
 
 当前 `live-auction-bid-frontend` **只承载后台 Web**：主播主账号、场控、商品助理、订单客服、数据复盘使用的 PC 工作台。

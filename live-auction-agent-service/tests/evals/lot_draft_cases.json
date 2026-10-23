@@ -1,0 +1,63 @@
+[
+  {
+    "id": "ocean-heart-complete-except-image",
+    "message": "海洋之心，价格10000，时长50分钟，封顶价格100000",
+    "expected_fields": {
+      "title": "海洋之心",
+      "startPriceAmount": 1000000,
+      "durationSeconds": 3000,
+      "capPriceAmount": 10000000
+    },
+    "required_inputs": ["MAIN_IMAGE"]
+  },
+  {
+    "id": "natural-language-named-ocean-heart",
+    "message": "我要拍卖名为海洋之心的宝石，价格10000，时长50分钟，封顶价格100000",
+    "expected_fields": {
+      "title": "海洋之心",
+      "startPriceAmount": 1000000,
+      "durationSeconds": 3000,
+      "capPriceAmount": 10000000
+    },
+    "required_inputs": ["MAIN_IMAGE"]
+  },
+  {
+    "id": "missing-start-price",
+    "message": "青花瓷瓶，时长20分钟",
+    "expected_fields": {
+      "title": "青花瓷瓶",
+      "durationSeconds": 1200
+    },
+    "required_inputs": ["START_PRICE", "MAIN_IMAGE"]
+  },
+  {
+    "id": "missing-duration",
+    "message": "限量腕表，起拍价8888",
+    "expected_fields": {
+      "title": "限量腕表",
+      "startPriceAmount": 888800
+    },
+    "required_inputs": ["DURATION", "MAIN_IMAGE"]
+  },
+  {
+    "id": "fractional-yuan",
+    "message": "收藏银币，价格99.50，持续90秒",
+    "expected_fields": {
+      "title": "收藏银币",
+      "startPriceAmount": 9950,
+      "durationSeconds": 90
+    },
+    "required_inputs": ["MAIN_IMAGE"]
+  },
+  {
+    "id": "auction-verb-prefix-diga",
+    "message": "拍卖迪迦奥特曼，价格19698，时长10分钟，封顶价格100000。",
+    "expected_fields": {
+      "title": "迪迦奥特曼",
+      "startPriceAmount": 1969800,
+      "durationSeconds": 600,
+      "capPriceAmount": 10000000
+    },
+    "required_inputs": ["MAIN_IMAGE"]
+  }
+]

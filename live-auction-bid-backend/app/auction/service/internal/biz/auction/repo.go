@@ -9,12 +9,17 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 )
 
-// LotRepository 管理拍品聚合持久化。
+// LotRepository 管理单个拍品聚合持久化。
 // biz 只依赖接口，不关心内存、MySQL 或其他存储实现。
+//
+// Agent 批量审批不得依次组合本接口的 Create、AttachAssets 和
+// QueueLotAsNext；那样无法保证整批原子性。该写路径必须实现
+// agentapproval.TransactionalRepository，在一个事务中重检并提交全部变更。
 type LotRepository interface {
 	Create(ctx context.Context, lot *v1.Lot, ownerUserID string, events []v1.AuctionEvent) error
 	Save(ctx context.Context, lot *v1.Lot, expectedVersion int64, events []v1.AuctionEvent) error
 	QueueLotAsNext(ctx context.Context, lotID, mainAccountID, ownerUserID string, nowMs int64) (*v1.Lot, int32, []v1.AuctionEvent, error)
+	DequeueLot(ctx context.Context, lotID, mainAccountID string, nowMs int64) (*v1.Lot, []v1.AuctionEvent, error)
 	RelistLotAsNext(ctx context.Context, sourceLotID, newLotID, mainAccountID, ownerUserID string, nowMs int64) (*v1.Lot, int32, []v1.AuctionEvent, error)
 	StartLotAsOnlyActive(ctx context.Context, lot *v1.Lot, expectedVersion int64, events []v1.AuctionEvent) error
 	AttachAssets(ctx context.Context, ownerUserID string, lot *v1.Lot) error
@@ -195,6 +200,10 @@ type DepositRepository interface {
 
 type DeliveryAddressRepository interface {
 	FindDeliveryAddress(ctx context.Context, userID, addressID string) (*shop.DeliveryAddress, error)
+}
+
+type DashboardRepository interface {
+	GetDashboard(context.Context, DashboardQuery) (DashboardSnapshot, error)
 }
 
 // EventRepository 持久化不伴随聚合状态更新的领域事件。

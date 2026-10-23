@@ -14,7 +14,14 @@ import (
 )
 
 func NewLotFromRequest(id string, req *v1.CreateLotRequest) (*v1.Lot, error) {
-	return NewLotDraftFromRequest(id, req, true)
+	lot, err := NewLotDraftFromRequest(id, req, true)
+	if err != nil {
+		return nil, err
+	}
+	// A complete persisted lot is inventory. DRAFT remains an internal state
+	// only for intentionally incomplete editor data.
+	lot.Status = v1.LotStatus_LOT_STATUS_READY
+	return lot, nil
 }
 
 func NewLotDraftFromRequest(id string, req *v1.CreateLotRequest, requireComplete bool) (*v1.Lot, error) {
@@ -236,6 +243,28 @@ func QueueLot(lot *v1.Lot, queuePosition int32) error {
 	return nil
 }
 
+// DequeueLot removes an unstarted lot from the ordered live queue without
+// cancelling or deleting the merchant's inventory item.
+func DequeueLot(lot *v1.Lot) error {
+	if lot == nil {
+		return fmt.Errorf("%w: lot is required", apperr.ErrInvalidArgument)
+	}
+	if lot.GetStartedAtUnixMs() > 0 || lot.GetStatus() == v1.LotStatus_LOT_STATUS_LIVE || lot.GetStatus() == v1.LotStatus_LOT_STATUS_EXTENDED {
+		return fmt.Errorf("%w: started lot cannot be dequeued", apperr.ErrInvalidArgument)
+	}
+	queued := lot.GetQueueStatus() == v1.LotQueueStatus_LOT_QUEUE_STATUS_QUEUED || lot.GetQueueStatus() == v1.LotQueueStatus_LOT_QUEUE_STATUS_NEXT
+	if !queued && lot.GetQueuePosition() == 0 {
+		return nil
+	}
+	if !queued || lot.GetQueuePosition() <= 0 || lot.GetStatus() != v1.LotStatus_LOT_STATUS_QUEUED {
+		return fmt.Errorf("%w: lot queue state is inconsistent", apperr.ErrInvalidArgument)
+	}
+	lot.Status = v1.LotStatus_LOT_STATUS_READY
+	clearQueueState(lot)
+	lot.Version++
+	return nil
+}
+
 func NewRelistLotFromFailed(id string, source *v1.Lot) (*v1.Lot, error) {
 	if source == nil {
 		return nil, fmt.Errorf("%w: source lot is required", apperr.ErrInvalidArgument)
@@ -433,8 +462,8 @@ func StartLot(lot *v1.Lot, nowMs int64) error {
 	if lot.GetRule() == nil || lot.GetRule().GetStartPrice() == nil {
 		return fmt.Errorf("%w: lot bid rule and start price are required", apperr.ErrInvalidArgument)
 	}
-	if lot.Status != v1.LotStatus_LOT_STATUS_DRAFT && lot.Status != v1.LotStatus_LOT_STATUS_QUEUED {
-		return fmt.Errorf("%w: only draft or queued lot can be started, current status: %s", apperr.ErrInvalidArgument, lot.Status)
+	if lot.Status != v1.LotStatus_LOT_STATUS_DRAFT && lot.Status != v1.LotStatus_LOT_STATUS_READY && lot.Status != v1.LotStatus_LOT_STATUS_QUEUED {
+		return fmt.Errorf("%w: only an unstarted lot can be started, current status: %s", apperr.ErrInvalidArgument, lot.Status)
 	}
 	lot.Status = v1.LotStatus_LOT_STATUS_LIVE
 	clearQueueState(lot)

@@ -1,0 +1,5 @@
+- insert:
+    - id: auction-backoffice
+      name: 'file:///D:/Go/Auc/ByteDanceliveauctioni/integrations/deepseek-harness/src/plugin.mjs'
+      config:
+        apiBaseUrl: 'http://127.0.0.1:18080'

@@ -31,6 +31,24 @@ coverage/
 __tests__/
 test/
 tests/
+!*_test.go
+!*_test.ts
+!*_test.tsx
+!live-auction-user-h5/src/shared/api/adapters.barrage.test.ts
+!live-auction-user-h5/src/features/auction/api/auctionApi.barrage.test.ts
+!live-auction-user-h5/src/features/live-room/model/auctionRoomReducer.barrage.test.ts
+!live-auction-user-h5/src/features/live-room/components/LiveRoomView.barrage-composer.test.tsx
+!live-auction-user-h5/src/features/search/api/buyerSearchApi.test.ts
+!live-auction-user-h5/src/features/search/model/searchPaging.test.ts
+# Preserve only this feature's integration tests; keep other private tests ignored.
+!live-auction-bid-backend/app/auction/service/test/
+live-auction-bid-backend/app/auction/service/test/*
+!live-auction-bid-backend/app/auction/service/test/buyer_search_mysql_test.go
+!live-auction-bid-backend/app/auction/service/test/buyer_search_postgres_test.go
+!docs/superpowers/specs/
+!docs/superpowers/specs/*.md
+!docs/superpowers/plans/
+!docs/superpowers/plans/*.md
 !start-loadtest-local.ps1
 !stop-loadtest-local.ps1
 !start-loadtest-docker.ps1
@@ -63,6 +81,30 @@ backups/
 .vite/
 .turbo/
 .eslintcache
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.agent-failure-isolation.lock
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Keep Agent Service tests tracked despite the repository-wide private-test rule.
+!live-auction-agent-service/tests/
+!live-auction-agent-service/tests/**
+live-auction-agent-service/tests/**/__pycache__/
+live-auction-agent-service/tests/**/*.py[cod]
+
+# Keep the Agent Console test harness tracked with the feature.
+!live-auction-bid-frontend/vitest.config.ts
+!live-auction-bid-frontend/src/test/
+!live-auction-bid-frontend/src/test/setup.ts
+!live-auction-bid-frontend/src/features/agent-console/AgentConsolePage.test.tsx
 
 # IDE and OS files
 .DS_Store

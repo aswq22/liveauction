@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"errors"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +15,19 @@ import (
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 )
+
+// lockAuctionLotsSorted gives multi-lot transactions one deterministic lock
+// order, avoiding cross-batch deadlocks when candidate order differs.
+func lockAuctionLotsSorted(ctx context.Context, tx *gorm.DB, ids []string) ([]AuctionLotModel, error) {
+	ordered := append([]string(nil), ids...)
+	sort.Strings(ordered)
+	if len(ordered) == 0 {
+		return []AuctionLotModel{}, nil
+	}
+	var models []AuctionLotModel
+	err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where("id IN ?", ordered).Order("id ASC").Find(&models).Error
+	return models, err
+}
 
 const missingLotCreatedAtFallback = 24 * time.Hour
 const stalePreStartLotWindow = 24 * time.Hour
@@ -220,7 +234,9 @@ func (s *Store) ListLots(ctx context.Context, query auction.LotQuery) (auction.L
 	}
 	var models []AuctionLotModel
 	ordered := db
-	if query.Status == v1.LotStatus_LOT_STATUS_QUEUED {
+	if query.OrderByUpdatedAt {
+		ordered = ordered.Order("updated_at DESC")
+	} else if query.Status == v1.LotStatus_LOT_STATUS_QUEUED {
 		ordered = ordered.Order("queue_position ASC")
 	} else {
 		ordered = ordered.Order("updated_at DESC")

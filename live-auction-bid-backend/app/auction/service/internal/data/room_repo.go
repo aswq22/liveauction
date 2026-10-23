@@ -10,6 +10,7 @@ import (
 	v1 "live-auction-bid/backend/api/auction/service/v1"
 	"live-auction-bid/backend/app/auction/service/internal/biz/auction"
 	userbiz "live-auction-bid/backend/app/auction/service/internal/biz/user"
+	"live-auction-bid/backend/app/auction/service/internal/pkg/apperr"
 	"live-auction-bid/backend/app/auction/service/internal/pkg/idgen"
 )
 
@@ -23,55 +24,54 @@ func (s *Store) EnsureDefaultRoom(ctx context.Context, mainAccountID, createdByU
 	if nowMs <= 0 {
 		return nil, errors.New("now ms is required")
 	}
-	var model AuctionRoomModel
-	err := s.db.WithContext(ctx).
-		Where("main_account_id = ?", mainAccountID).
-		Order("created_at_unix_ms ASC").
-		Order("id ASC").
-		First(&model).Error
-	if err == nil {
-		if err := s.ensureRoomLiveDefaults(ctx, &model, nowMs); err != nil {
-			return nil, err
+	var roomOut *auction.Room
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// A merchant may own multiple rooms, so tenant uniqueness cannot serialize
+		// default creation. Lock its existing account before the first room read.
+		var main AuctionUserModel
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id").Where("id = ?", mainAccountID).First(&main).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperr.ErrNotFound
+			}
+			return err
 		}
-		if err := ensureRoomStateRecord(ctx, s.db, model.ID, model.MainAccountID, nowMs); err != nil {
-			return nil, err
+		var model AuctionRoomModel
+		err := tx.Where("main_account_id = ?", mainAccountID).
+			Order("created_at_unix_ms ASC").Order("id ASC").First(&model).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			room := auction.Room{
+				ID:              idgen.New("room"),
+				MainAccountID:   mainAccountID,
+				Name:            fallbackRoomName,
+				Platform:        "douyin",
+				Status:          auction.RoomStatusActive,
+				CreatedByUserID: strings.TrimSpace(createdByUserID),
+				CreatedAtUnixMs: nowMs,
+				UpdatedAtUnixMs: nowMs,
+			}
+			applyRoomLiveDefaults(&room, nowMs)
+			model = *roomToModel(room)
+			if err := tx.Create(&model).Error; err != nil {
+				return err
+			}
+		} else if err != nil {
+			return err
 		}
-		room, _, err := s.roomFromModelWithProfile(ctx, &model, false)
-		return room, err
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
-	}
-	room := auction.Room{
-		ID:              idgen.New("room"),
-		MainAccountID:   mainAccountID,
-		Name:            fallbackRoomName,
-		Platform:        "douyin",
-		Status:          auction.RoomStatusActive,
-		CreatedByUserID: strings.TrimSpace(createdByUserID),
-		CreatedAtUnixMs: nowMs,
-		UpdatedAtUnixMs: nowMs,
-	}
-	applyRoomLiveDefaults(&room, nowMs)
-	model = *roomToModel(room)
-	if err := s.db.WithContext(ctx).
-		Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "main_account_id"}}, DoNothing: true}).
-		Create(&model).Error; err != nil {
-		return nil, err
-	}
-	err = s.db.WithContext(ctx).
-		Where("main_account_id = ?", mainAccountID).
-		Order("created_at_unix_ms ASC").
-		Order("id ASC").
-		First(&model).Error
+		txStore := *s
+		txStore.db = tx
+		if err := txStore.ensureRoomLiveDefaults(ctx, &model, nowMs); err != nil {
+			return err
+		}
+		if err := ensureRoomStateRecord(ctx, tx, model.ID, model.MainAccountID, nowMs); err != nil {
+			return err
+		}
+		roomOut, _, err = txStore.roomFromModelWithProfile(ctx, &model, false)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
-	if err := ensureRoomStateRecord(ctx, s.db, model.ID, model.MainAccountID, nowMs); err != nil {
-		return nil, err
-	}
-	roomOut, _, err := s.roomFromModelWithProfile(ctx, &model, false)
-	return roomOut, err
+	return roomOut, nil
 }
 
 func (s *Store) ListRooms(ctx context.Context, query auction.RoomQuery) ([]auction.Room, error) {
@@ -128,6 +128,29 @@ func (s *Store) FindRoomByID(ctx context.Context, roomID string) (*auction.Room,
 	}
 	room, visible, err := s.roomFromModelWithProfile(ctx, &model, false)
 	return room, visible, err
+}
+
+// PublicRoomAvailable performs the lightweight public barrage admission query.
+// Public availability follows the same owner semantics as public room listing:
+// the room is active and its owner is active with the merchant-owner role.
+func (s *Store) PublicRoomAvailable(ctx context.Context, roomID string) (bool, error) {
+	if s == nil || s.db == nil {
+		return false, errors.New("room store is not initialized")
+	}
+	roomID = strings.TrimSpace(roomID)
+	if roomID == "" {
+		return false, errors.New("room id is required")
+	}
+	var count int64
+	err := s.db.WithContext(ctx).
+		Model(&AuctionRoomModel{}).
+		Joins("JOIN auction_users AS public_owner ON public_owner.id = auction_rooms.main_account_id").
+		Where("auction_rooms.id = ?", roomID).
+		Where("auction_rooms.status = ?", string(auction.RoomStatusActive)).
+		Where("public_owner.status = ?", int32(v1.UserStatus_USER_STATUS_ACTIVE)).
+		Where("EXISTS (SELECT 1 FROM auction_user_roles WHERE auction_user_roles.user_id = public_owner.id AND auction_user_roles.role_code = ?)", userbiz.RoleMerchantOwner).
+		Count(&count).Error
+	return count > 0, err
 }
 
 func roomToModel(room auction.Room) *AuctionRoomModel {
