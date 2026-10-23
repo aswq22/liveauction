@@ -1,130 +1,17 @@
-# Environment and secrets
+# Local credentials and environment
 .env
 .env.*
 !.env.example
+!.env.*.example
 *.pem
 *.key
-*.crt
 *.p12
 *.pfx
 
-# Dependencies
+# Installed dependencies and local caches
 node_modules/
-vendor/
-
-# Build outputs
-dist/
-build/
-coverage/
-*.tsbuildinfo
-*.test
-*.out
-
-# Tests are private-only in the public mirror
-*_test.go
-*test*
-*Test*
-*spec*
-*Spec*
-*.test.*
-*.spec.*
-__tests__/
-test/
-tests/
-!*_test.go
-!*_test.ts
-!*_test.tsx
-!live-auction-user-h5/src/shared/api/adapters.barrage.test.ts
-!live-auction-user-h5/src/features/auction/api/auctionApi.barrage.test.ts
-!live-auction-user-h5/src/features/live-room/model/auctionRoomReducer.barrage.test.ts
-!live-auction-user-h5/src/features/live-room/components/LiveRoomView.barrage-composer.test.tsx
-!live-auction-user-h5/src/features/search/api/buyerSearchApi.test.ts
-!live-auction-user-h5/src/features/search/model/searchPaging.test.ts
-# Preserve only this feature's integration tests; keep other private tests ignored.
-!live-auction-bid-backend/app/auction/service/test/
-live-auction-bid-backend/app/auction/service/test/*
-!live-auction-bid-backend/app/auction/service/test/buyer_search_mysql_test.go
-!live-auction-bid-backend/app/auction/service/test/buyer_search_postgres_test.go
-!docs/superpowers/specs/
-!docs/superpowers/specs/*.md
-!docs/superpowers/plans/
-!docs/superpowers/plans/*.md
-!start-loadtest-local.ps1
-!stop-loadtest-local.ps1
-!start-loadtest-docker.ps1
-!stop-loadtest-docker.ps1
-!live-auction-bid-backend/loadtest/
-!live-auction-bid-backend/loadtest/**
-!live-auction-bid-backend/deploy/docker-compose.loadtest.yml
-!live-auction-bid-backend/deploy/Dockerfile.loadtest-runtime
-
-# Logs and reports
-*.log
-logs/
-reports/
-tmp/
-.tmp/
-.local-run/
-.loadtest-run/
-live-auction-bid-backend/.loadtest-bin/
-live-auction-bid-backend/loadtest/.runs/
-**/local-assets/
-**/mysql-data/
-**/mysql-data-volume-copy-*/
-native-mysql-data/
-native-local-assets/
-native-loadtest-assets/
-backups/
-
-# Tooling caches
-.cache/
-.vite/
-.turbo/
-.eslintcache
-
-# Python caches and virtual environments
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.agent-failure-isolation.lock
-.mypy_cache/
-.ruff_cache/
 .venv/
-venv/
-env/
-*.egg-info/
-
-# Keep Agent Service tests tracked despite the repository-wide private-test rule.
-!live-auction-agent-service/tests/
-!live-auction-agent-service/tests/**
-live-auction-agent-service/tests/**/__pycache__/
-live-auction-agent-service/tests/**/*.py[cod]
-
-# Keep the Agent Console test harness tracked with the feature.
-!live-auction-bid-frontend/vitest.config.ts
-!live-auction-bid-frontend/src/test/
-!live-auction-bid-frontend/src/test/setup.ts
-!live-auction-bid-frontend/src/features/agent-console/AgentConsolePage.test.tsx
-
-# IDE and OS files
+__pycache__/
+.go-build-cache/
 .DS_Store
 Thumbs.db
-.idea/
-.vscode/
-
-# Agent/internal work notes
-.AGENT/
-.agents/
-.codex/
-.workflow/
-.superpowers/
-lark-*.png
-docs/KNOWLEDGE_BASE.md
-**/docs/KNOWLEDGE_BASE.md
-**/docs/openclaw/
-**/docs/task/
-**/design-qa.md
-
-# Non-public sample/scraped data and design drafts
-**/public/data/
-**/public/shop-icon-drafts/
